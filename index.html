@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UK DC Provider News Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f4f6f9;
+      color: #222;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    header .meta {
+      font-size: 0.78rem;
+      color: #aab3cc;
+    }
+
+    #refresh-btn {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    #refresh-btn:hover:not(:disabled) { background: #1d4ed8; }
+    #refresh-btn:disabled { background: #4b5563; cursor: not-allowed; }
+
+    #status-bar {
+      background: #1e293b;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      padding: 6px 24px;
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #334155;
+      border-top-color: #60a5fa;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .table-wrapper {
+      overflow-x: auto;
+      padding: 20px 24px 32px;
+    }
+
+    table {
+      border-collapse: collapse;
+      min-width: 900px;
+      width: 100%;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    }
+
+    thead th {
+      background: #1a1a2e;
+      color: #e2e8f0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 12px 14px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    thead th:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: #0f0f1e;
+      min-width: 140px;
+    }
+
+    tbody tr:nth-child(even) td { background: #f8fafc; }
+    tbody tr:hover td { background: #eff6ff; }
+
+    td {
+      padding: 12px 14px;
+      vertical-align: top;
+      font-size: 0.82rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    td:first-child {
+      position: sticky;
+      left: 0;
+      background: #fff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      border-left: 4px solid var(--brand);
+      white-space: nowrap;
+      z-index: 1;
+      box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+    }
+
+    tbody tr:nth-child(even) td:first-child { background: #f8fafc; }
+    tbody tr:hover td:first-child { background: #eff6ff; }
+
+    .news-cell {
+      max-width: 200px;
+      min-width: 160px;
+    }
+
+    .news-cell a {
+      color: #1d4ed8;
+      text-decoration: none;
+      font-weight: 500;
+      line-height: 1.35;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .news-cell a:hover { text-decoration: underline; color: #1e40af; }
+
+    .news-cell .source {
+      color: #64748b;
+      font-size: 0.72rem;
+    }
+
+    .news-cell .date {
+      color: #94a3b8;
+      font-size: 0.70rem;
+      margin-top: 2px;
+    }
+
+    .error-cell {
+      color: #ef4444;
+      font-size: 0.75rem;
+      font-style: italic;
+    }
+
+    .empty-cell {
+      color: #cbd5e1;
+      font-size: 0.75rem;
+      font-style: italic;
+    }
+
+    footer {
+      text-align: center;
+      padding: 16px 24px;
+      font-size: 0.72rem;
+      color: #94a3b8;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    #next-refresh {
+      font-weight: 500;
+      color: #60a5fa;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>UK DC Provider News Tracker</h1>
+    <div class="meta" id="last-updated">Loading…</div>
+  </div>
+  <button id="refresh-btn" onclick="loadData(true)">Refresh Now</button>
+</header>
+
+<div id="status-bar"><span class="spinner"></span><span id="status-text">Initialising…</span></div>
+
+<div class="table-wrapper">
+  <table id="news-table">
+    <thead>
+      <tr>
+        <th>Provider</th>
+        <th>Latest</th>
+        <th>2nd</th>
+        <th>3rd</th>
+        <th>4th</th>
+        <th>5th</th>
+      </tr>
+    </thead>
+    <tbody id="table-body">
+      <tr><td colspan="6" style="text-align:center;padding:40px;color:#94a3b8;">Loading news…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<footer>
+  Data sourced via Google News RSS. Cache refreshes every 24 hours —
+  <span id="next-refresh">calculating…</span>.
+  Page must remain open to auto-refresh. For server-based background updates, contact your developer.
+</footer>
+
+<script>
+  const CACHE_KEY = 'pension_news_v2';
+  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in ms
+  const MAX_ITEMS = 5;
+
+  const PROVIDERS = [
+    { name: 'Aon',                    query: 'Aon pension UK',                   brand: '#d97706' },
+    { name: 'Aviva',                  query: 'Aviva pension UK',                 brand: '#16a34a' },
+    { name: 'HL Workplace',           query: '"HL Workplace"',                   brand: '#15803d' },
+    { name: 'Legal & General',        query: '"Legal & General" pension',        brand: '#dc2626' },
+    { name: 'Mercer DC Master Trust', query: '"Mercer" "DC Master Trust"',       brand: '#0d9488' },
+    { name: 'NEST',                   query: '"NEST" pension UK',                brand: '#0c4a6e' },
+    { name: 'Now:Pensions',           query: '"Now:Pensions" OR "Now Pensions"', brand: '#ea580c' },
+    { name: 'Penfold',                query: '"Penfold" pension UK',             brand: '#6366f1' },
+    { name: "People's Pension",       query: '"People\'s Pension"',              brand: '#be185d' },
+    { name: 'Scottish Widows',        query: '"Scottish Widows" pension',        brand: '#004b87' },
+    { name: 'Smart Pension',          query: '"Smart Pension"',                  brand: '#5b21b6' },
+    { name: 'Standard Life',          query: '"Standard Life" pension UK',       brand: '#7c3aed' },
+    { name: 'TPT',                    query: '"TPT Retirement Solutions"',       brand: '#92400e' },
+    { name: 'WTW LifeSight',          query: '"LifeSight" pension',              brand: '#0891b2' },
+  ];
+
+  let refreshTimer = null;
+
+  // Ordered list of CORS proxies to try in sequence
+  const CORS_PROXIES = [
+    rssUrl => 'https://corsproxy.io/?' + encodeURIComponent(rssUrl),
+    rssUrl => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rssUrl),
+    rssUrl => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(rssUrl),
+  ];
+
+  function gnRssUrl(query) {
+    return 'https://news.google.com/rss/search?q='
+      + encodeURIComponent(query)
+      + '&hl=en-GB&gl=GB&ceid=GB:en';
+  }
+
+  // Keywords indicating DB pension risk transfer articles to exclude
+  const DB_FILTER = [
+    'buy-in', 'buy-out', 'buyout', 'buy out',
+    'bulk annuity', 'bulk purchase annuity',
+    'pension risk transfer',
+    'longevity swap',
+    'liability driven',
+    'endgame',
+  ];
+
+  function isDbArticle(title) {
+    const lower = title.toLowerCase();
+    return DB_FILTER.some(kw => lower.includes(kw));
+  }
+
+  function parseRssXml(text, providerName) {
+    const xml = new DOMParser().parseFromString(text, 'application/xml');
+    if (xml.querySelector('parsererror')) throw new Error('XML parse failed');
+    return [...xml.querySelectorAll('item')]
+      .map(item => ({
+        title:   item.querySelector('title')?.textContent?.trim() || '(no title)',
+        link:    item.querySelector('link')?.textContent?.trim()
+                   || item.querySelector('guid')?.textContent?.trim() || '#',
+        pubDate: item.querySelector('pubDate')?.textContent?.trim() || '',
+        source:  item.querySelector('source')?.textContent?.trim() || providerName,
+      }))
+      .filter(item => !isDbArticle(item.title))
+      .sort((a, b) => {
+        const ta = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+        const tb = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+        return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
+      })
+      .slice(0, MAX_ITEMS);
+  }
+
+  function fmtDate(str) {
+    if (!str) return '';
+    try {
+      const d = new Date(str);
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch { return str.slice(0, 10); }
+  }
+
+  function truncate(str, n) {
+    if (!str) return '';
+    return str.length > n ? str.slice(0, n - 1) + '…' : str;
+  }
+
+  async function fetchProviderNews(provider) {
+    const rssUrl = gnRssUrl(provider.query);
+    let lastErr = null;
+    for (const proxyFn of CORS_PROXIES) {
+      try {
+        const resp = await fetch(proxyFn(rssUrl), { signal: AbortSignal.timeout(12000) });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const text = await resp.text();
+        const items = parseRssXml(text, provider.name);
+        return { provider: provider.name, brand: provider.brand, items, error: null };
+      } catch (err) {
+        lastErr = err.message;
+      }
+    }
+    return { provider: provider.name, brand: provider.brand, items: [], error: lastErr };
+  }
+
+  function setStatus(msg, loading = false) {
+    const bar = document.getElementById('status-bar');
+    const txt = document.getElementById('status-text');
+    bar.innerHTML = '';
+    if (loading) {
+      const s = document.createElement('span');
+      s.className = 'spinner';
+      bar.appendChild(s);
+    }
+    const t = document.createElement('span');
+    t.id = 'status-text';
+    t.textContent = msg;
+    bar.appendChild(t);
+  }
+
+  function setNextRefreshLabel(timestamp) {
+    const el = document.getElementById('next-refresh');
+    if (!el) return;
+    const next = new Date(timestamp + CACHE_TTL);
+    el.textContent = 'next auto-refresh at ' + next.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' on ' + next.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+
+  function scheduleNextRefresh(timestamp) {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    const delay = (timestamp + CACHE_TTL) - Date.now();
+    if (delay > 0) {
+      refreshTimer = setTimeout(() => loadData(true), delay);
+    } else {
+      loadData(true);
+    }
+  }
+
+  function renderTable(results) {
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = '';
+    for (const r of results) {
+      const tr = document.createElement('tr');
+      // Provider cell
+      const tdName = document.createElement('td');
+      tdName.textContent = r.provider;
+      tdName.style.setProperty('--brand', r.brand);
+      tr.appendChild(tdName);
+
+      if (r.error && r.items.length === 0) {
+        // Show error spanning remaining columns
+        const tdErr = document.createElement('td');
+        tdErr.colSpan = MAX_ITEMS;
+        tdErr.className = 'error-cell';
+        tdErr.textContent = 'Could not load: ' + r.error;
+        tr.appendChild(tdErr);
+      } else {
+        for (let i = 0; i < MAX_ITEMS; i++) {
+          const td = document.createElement('td');
+          td.className = 'news-cell';
+          const item = r.items[i];
+          if (item) {
+            const a = document.createElement('a');
+            a.href = item.link;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.textContent = truncate(item.title, 90);
+            const src = document.createElement('div');
+            src.className = 'source';
+            src.textContent = truncate(item.source, 40);
+            const dt = document.createElement('div');
+            dt.className = 'date';
+            dt.textContent = fmtDate(item.pubDate);
+            td.appendChild(a);
+            td.appendChild(src);
+            td.appendChild(dt);
+          } else {
+            td.className += ' empty-cell';
+            td.textContent = r.error ? '—' : 'No article';
+          }
+          tr.appendChild(td);
+        }
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  async function loadData(forceRefresh = false) {
+    const btn = document.getElementById('refresh-btn');
+    const lastUpdatedEl = document.getElementById('last-updated');
+    btn.disabled = true;
+
+    // Try cache first
+    if (!forceRefresh) {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          const age = Date.now() - cached.timestamp;
+          if (age < CACHE_TTL) {
+            renderTable(cached.results);
+            const updatedAt = new Date(cached.timestamp);
+            lastUpdatedEl.textContent = 'Cached ' + updatedAt.toLocaleString('en-GB');
+            setStatus('Serving cached data (fetched ' + Math.round(age / 60000) + ' min ago).');
+            setNextRefreshLabel(cached.timestamp);
+            scheduleNextRefresh(cached.timestamp);
+            btn.disabled = false;
+            return;
+          }
+        }
+      } catch { /* ignore bad cache */ }
+    }
+
+    // Fetch fresh
+    setStatus('Fetching latest news from Google News…', true);
+    lastUpdatedEl.textContent = 'Updating…';
+
+    const results = await Promise.all(PROVIDERS.map(p => fetchProviderNews(p)));
+
+    const timestamp = Date.now();
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp, results }));
+    } catch { /* storage full – skip cache */ }
+
+    renderTable(results);
+    const updatedAt = new Date(timestamp);
+    lastUpdatedEl.textContent = 'Updated ' + updatedAt.toLocaleString('en-GB');
+    const errors = results.filter(r => r.error).length;
+    setStatus(errors ? `Loaded with ${errors} provider error(s). Check console for details.` : 'All providers loaded successfully.');
+    setNextRefreshLabel(timestamp);
+    scheduleNextRefresh(timestamp);
+    btn.disabled = false;
+  }
+
+  // Kick off on page load
+  loadData(false);
+</script>
+</body>
+</html>
