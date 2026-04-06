@@ -226,6 +226,11 @@
 </footer>
 
 <script>
+  // Paste your deployed Cloudflare Worker URL here, e.g.:
+  // 'https://pension-news-proxy.your-subdomain.workers.dev'
+  // Leave as empty string to fall back to public CORS proxies.
+  const WORKER_URL = 'https://pension-news-proxy.tom-trennery.workers.dev';
+
   const CACHE_KEY = 'pension_news_v2';
   const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in ms
   const MAX_ITEMS = 5;
@@ -249,12 +254,46 @@
 
   let refreshTimer = null;
 
-  // Ordered list of CORS proxies to try in sequence
-  const CORS_PROXIES = [
-    rssUrl => 'https://corsproxy.io/?' + encodeURIComponent(rssUrl),
-    rssUrl => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rssUrl),
-    rssUrl => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(rssUrl),
-  ];
+  // Build the proxy list at runtime so WORKER_URL is included when set.
+  function buildProxies() {
+    const list = []
+    if (WORKER_URL) {
+      list.push({
+        name:    'worker',
+        build:   rssUrl => WORKER_URL + '?url=' + encodeURIComponent(rssUrl),
+        extract: r => r.text()
+      })
+    }
+    // Public CORS proxies as fallback
+    list.push(
+      {
+        name:    'corsproxy.io',
+        build:   rssUrl => 'https://corsproxy.io/?' + encodeURIComponent(rssUrl),
+        extract: r => r.text()
+      },
+      {
+        name:    'allorigins/raw',
+        build:   rssUrl => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rssUrl),
+        extract: r => r.text()
+      },
+      {
+        name:    'allorigins/get',
+        build:   rssUrl => 'https://api.allorigins.win/get?url=' + encodeURIComponent(rssUrl),
+        extract: async r => {
+          const j = await r.json();
+          if (!j.contents) throw new Error('empty allorigins response');
+          const raw = j.contents;
+          return raw.startsWith('&lt;') ? raw.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'") : raw;
+        }
+      },
+      {
+        name:    'codetabs',
+        build:   rssUrl => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(rssUrl),
+        extract: r => r.text()
+      }
+    )
+    return list
+  }
 
   function gnRssUrl(query) {
     return 'https://news.google.com/rss/search?q='
@@ -278,7 +317,14 @@
   }
 
   function parseRssXml(text, providerName) {
-    const xml = new DOMParser().parseFromString(text, 'application/xml');
+    // Strip UTF-8 BOM and whitespace, then verify this is actually XML before
+    // attempting to parse. Proxies often return HTML error/captcha pages instead
+    // of RSS, which causes DOMParser to report a parsererror.
+    const clean = text.replace(/^\uFEFF/, '').trim();
+    if (!clean.startsWith('<?xml') && !clean.startsWith('<rss') && !clean.startsWith('<feed')) {
+      throw new Error('proxy returned non-XML: "' + clean.slice(0, 80).replace(/\s+/g, ' ') + '"');
+    }
+    const xml = new DOMParser().parseFromString(clean, 'application/xml');
     if (xml.querySelector('parsererror')) throw new Error('XML parse failed');
     return [...xml.querySelectorAll('item')]
       .map(item => ({
@@ -313,14 +359,15 @@
   async function fetchProviderNews(provider) {
     const rssUrl = gnRssUrl(provider.query);
     let lastErr = null;
-    for (const proxyFn of CORS_PROXIES) {
+    for (const proxy of buildProxies()) {
       try {
-        const resp = await fetch(proxyFn(rssUrl), { signal: AbortSignal.timeout(12000) });
+        const resp = await fetch(proxy.build(rssUrl), { signal: AbortSignal.timeout(8000) });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const text = await resp.text();
+        const text = await proxy.extract(resp);
         const items = parseRssXml(text, provider.name);
         return { provider: provider.name, brand: provider.brand, items, error: null };
       } catch (err) {
+        console.warn(`[${provider.name}] proxy "${proxy.name}" failed:`, err.message);
         lastErr = err.message;
       }
     }
@@ -438,7 +485,12 @@
     setStatus('Fetching latest news from Google News…', true);
     lastUpdatedEl.textContent = 'Updating…';
 
-    const results = await Promise.all(PROVIDERS.map(p => fetchProviderNews(p)));
+    // Stagger requests 300 ms apart to avoid rate-limiting on shared CORS proxies.
+    const results = await Promise.all(
+      PROVIDERS.map((p, i) => new Promise(resolve =>
+        setTimeout(() => fetchProviderNews(p).then(resolve), i * 300)
+      ))
+    );
 
     const timestamp = Date.now();
     try {
