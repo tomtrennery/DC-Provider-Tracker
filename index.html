@@ -221,7 +221,7 @@
 <nav class="tabs">
   <button class="tab-btn active"  id="tab-btn-providers" onclick="switchTab('providers')">DC Providers</button>
   <button class="tab-btn"         id="tab-btn-bill"      onclick="switchTab('bill')">Regulatory Change</button>
-  <button class="tab-btn"         id="tab-btn-radar"     onclick="switchTab('radar')">Horizon Scanner</button>
+  <button class="tab-btn"         id="tab-btn-radar"     onclick="switchTab('radar')">UK Employers Tracker</button>
 </nav>
 
 <div id="status-bar"><span class="spinner"></span><span id="status-text">Initialising…</span></div>
@@ -254,7 +254,7 @@
   </div>
 </div>
 
-<!-- Horizon Scanner tab -->
+<!-- UK Employers Tracker tab -->
 <div id="panel-radar" style="display:none">
   <div class="pin-bar">
     <div class="pin-bar-row">
@@ -283,7 +283,7 @@
     </table>
   </div>
   <div class="radar-note">
-    Universe: ~165 large UK employers across FTSE 100/250, large private, and PE-backed companies. Score = recency-weighted trigger strength (0–100): red ≥ 60, amber ≥ 30, grey &lt; 30. Cache refreshes every 6 hours. Pinned employers (📌) always show at the top regardless of score.
+    Any UK employer in the news. Score = recency-weighted signal strength (0–100): red ≥ 60, amber ≥ 30, grey &lt; 30. Signals: M&amp;A activity, senior appointments, restructuring, pension reviews, scheme consolidation, public tenders. Cache refreshes every 6 hours. Pinned employers (📌) always show at top.
   </div>
 </div>
 
@@ -322,6 +322,8 @@
     'https://corporate-adviser.com/feed/?paged=4',
     'https://moneymarketing.co.uk/category/pensions/feed/',
     'https://www.employeebenefits.co.uk/feed',
+    'https://www.cityam.com/feed/',              // M&A / business signals
+    'https://www.personneltoday.com/feed/?cat=pensions', // HR pensions news
   ];
   let _tradePressPromise = null;
   let _tradePressExpiry  = 0;
@@ -331,7 +333,7 @@
     { name: 'Aviva',           queries: ['Aviva workplace pension UK',            'Aviva pension auto enrolment UK'],    terms: ['aviva'],                                    brand: '#16a34a' },
     { name: 'Fidelity',        queries: ['Fidelity workplace pension UK',         'Fidelity pension UK'],                terms: ['fidelity'],                                 brand: '#6b7280' },
     { name: 'HL Workplace',    queries: ['Hargreaves Lansdown workplace pension', 'Hargreaves Lansdown pension UK'],     terms: ['hargreaves lansdown', 'hl workplace'],       brand: '#15803d' },
-    { name: 'Legal & General', queries: ['Legal General workplace pension UK',    'Legal General pension UK'],           terms: ['legal & general', 'legal and general'],     brand: '#dc2626' },
+    { name: 'Legal & General', queries: ['Legal General workplace pension UK', 'Legal General pension UK', 'Legal General pensions 2026', 'L&G pension UK'],  terms: ['legal & general', 'legal and general', 'lgen'],  brand: '#dc2626' },
     { name: 'Mercer DC',       queries: ['Marsh McLennan pension UK 2026', 'Mercer pension UK 2026', 'Mercer master trust UK', 'Mercer DC workplace pensions'], terms: ['mercer', 'marsh mclennan'],                 brand: '#0d9488' },
     { name: 'NEST',            queries: ['NEST pension UK 2026',                  'National Employment Savings Trust investment'], terms: ['nest pension', 'national employment savings'],brand: '#0c4a6e' },
     { name: 'Now:Pensions',    queries: ['Now Pensions UK workplace',             'Now Pensions auto enrolment UK'],    terms: ['now pensions', 'now: pensions'],             brand: '#ea580c' },
@@ -340,7 +342,7 @@
     { name: 'Scottish Widows', queries: ['Scottish Widows workplace pension UK',  'Scottish Widows pension UK'],         terms: ['scottish widows'],                          brand: '#004b87' },
     { name: 'Smart Pension',   queries: ['Smart Pension UK 2026', 'Smart Pension master trust 2026', 'Smart Pension workplace pension'],  terms: ['smart pension'],                            brand: '#5b21b6' },
     { name: 'Standard Life',   queries: ['Standard Life workplace pension UK',    'Standard Life pension UK'],           terms: ['standard life'],                            brand: '#7c3aed' },
-    { name: 'TPT',             queries: ['TPT Retirement Solutions pension UK',   'TPT pension master trust UK'],        terms: ['tpt retirement', 'tpt pension'],             brand: '#92400e' },
+    { name: 'TPT',             queries: ['TPT Retirement Solutions pension UK', 'TPT pension master trust 2026', 'TPT pension UK 2026'],  terms: ['tpt retirement', 'tpt pension', 'tpt master trust'], brand: '#92400e' },
     { name: 'WTW LifeSight',   queries: ['WTW LifeSight pension UK', 'Willis Towers Watson pension UK', 'WTW Cushon acquisition pension'],  terms: ['lifesight', 'wtw', 'willis towers watson', 'cushon'],  brand: '#0891b2' },
   ];
 
@@ -352,11 +354,12 @@
     { name: 'Auto-enrolment',       queries: ['automatic enrolment pension UK 2025',       'auto enrolment contributions UK'],         terms: ['auto-enrolment', 'auto enrolment', 'automatic enrolment'],  brand: '#0d9488' },
     { name: 'CDC & Innovation',       queries: ['collective DC pension UK CDC 2025',         'CDC collective defined contribution UK'],  terms: ['collective dc', 'cdc pension', 'collective defined'],        brand: '#16a34a' },
     { name: 'DC Scheme Consolidation',queries: ['DC pension scheme consolidation master trust 2026', 'pension scheme wind-up bulk transfer master trust 2025 2026'], terms: ['scheme consolidation', 'bulk transfer', 'wind-up', 'winding up', 'master trust transfer', 'chair statement pension'], brand: '#b45309' },
+    { name: 'Pensions UK / Industry',  queries: ['PensionsUK annual conference 2026', 'Pensions UK DC workplace industry 2026'],  terms: ['pensionsuk', 'pensions uk', 'plsa', 'pensions conference', 'industry conference'], brand: '#0f766e' },
   ];
 
   const TABS = {
-    providers: { cacheKey: 'pension_news_v9',  items: PROVIDERS,   tbodyId: 'providers-body', applyFilter: true  },
-    bill:      { cacheKey: 'pension_regs_v4',  items: BILL_TOPICS, tbodyId: 'bill-body',      applyFilter: false },
+    providers: { cacheKey: 'pension_news_v13', items: PROVIDERS,   tbodyId: 'providers-body', applyFilter: true  },
+    bill:      { cacheKey: 'pension_regs_v5',  items: BILL_TOPICS, tbodyId: 'bill-body',      applyFilter: false },
   };
 
   let activeTab = 'providers';
@@ -392,8 +395,18 @@
     return 'https://www.bing.com/news/search?q=' + encodeURIComponent(query) + '&format=rss&cc=GB';
   }
 
-  const DB_FILTER = ['buy-in','buy-out','buyout','buy out','bulk annuity','bulk purchase annuity','pension risk transfer','longevity swap','liability driven','endgame'];
+  const DB_FILTER = ['buy-in','buy-out','buyout','buy out','bulk annuity','bulk purchase annuity','pension risk transfer','longevity swap','liability driven','endgame','final salary','defined benefit',' db ','db scheme','db pension','db fund'];
   function isDbArticle(title) { const l = title.toLowerCase(); return DB_FILTER.some(k => l.includes(k)); }
+
+  const DC_TERMS = ['workplace pension','auto-enrolment','auto enrolment','automatic enrolment','master trust','defined contribution','pension scheme','pension provider','pension dashboard','pension contribution','dc pension','employer pension','pension fund','pensions minister','pensions act','pensions bill','vfm','value for money','pensions regulator','pension regulator','retirement saving','workplace saving','auto enrolled','pension default','member outcomes','pension adequacy','decumulation','at retirement','drawdown','retirement income','retirement solution','retirement pot','retirement provision'];
+  function isDcRelevant(title, description) {
+    const hay = ((title || '') + ' ' + (description || '')).toLowerCase();
+    // Always pass if it explicitly names a pension scheme type or regulatory term
+    if (DC_TERMS.some(t => hay.includes(t))) return true;
+    // Also pass if it contains the word 'pension' or 'pensions' — catches provider-specific news
+    // that may not use formal DC labels (e.g. "Aviva workplace pension members tool")
+    return /\bpensions?\b/.test(hay);
+  }
 
   function parseRssXml(text, rowName, applyFilter) {
     const clean = text.replace(/^﻿/, '').trim();
@@ -404,22 +417,23 @@
     const cutoff = Date.now() - 270 * 24 * 60 * 60 * 1000;
     return [...xml.querySelectorAll('item')]
       .map(item => ({
-        title:   item.querySelector('title')?.textContent?.trim() || '(no title)',
-        link:    item.querySelector('link')?.textContent?.trim() || item.querySelector('guid')?.textContent?.trim() || '#',
-        pubDate: item.querySelector('pubDate')?.textContent?.trim() || '',
-        source:  (item.querySelector('source') || item.querySelector('Source'))?.textContent?.trim() || rowName,
+        title:       item.querySelector('title')?.textContent?.trim() || '(no title)',
+        link:        item.querySelector('link')?.textContent?.trim() || item.querySelector('guid')?.textContent?.trim() || '#',
+        pubDate:     item.querySelector('pubDate')?.textContent?.trim() || '',
+        source:      (item.querySelector('source') || item.querySelector('Source'))?.textContent?.trim() || rowName,
+        description: item.querySelector('description')?.textContent?.replace(/<[^>]*>/g,'').trim() || '',
       }))
       .filter(i => {
         const ts = i.pubDate ? new Date(i.pubDate).getTime() : Date.now();
         if (ts < cutoff) return false;
-        return !applyFilter || !isDbArticle(i.title);
+        if (isDbArticle(i.title)) return false;
+        return true;
       })
       .sort((a,b) => {
         const ta = a.pubDate ? new Date(a.pubDate).getTime() : 0;
         const tb = b.pubDate ? new Date(b.pubDate).getTime() : 0;
         return (isNaN(tb)?0:tb) - (isNaN(ta)?0:ta);
-      })
-      .slice(0, MAX_ITEMS);
+      });
   }
 
   function fmtDate(str) {
@@ -472,20 +486,35 @@
 
   async function fetchRowNews(row, applyFilter) {
     const queries = Array.isArray(row.queries) ? row.queries : [row.query].filter(Boolean);
+    const TSKIP = new Set(['the','and','for','uk','plc','ltd','group','llp','corp','inc','co','of','by','at','dc','new']);
+    const autoTerms = row.terms !== undefined ? row.terms : [
+      // Don't split on hyphens so "Co-op" stays "co-op", not ["co","op"]. Require >=4 chars.
+      row.name.toLowerCase().split(/[\s/&+,().]+/).find(t => t.length >= 4 && !TSKIP.has(t)) || ''
+    ].filter(Boolean);
     const [batches, tradeAll] = await Promise.all([
       Promise.all(queries.map(q => fetchOneQuery(q, row.name, applyFilter))),
-      row.terms ? getTradePress() : Promise.resolve([]),
+      autoTerms.length ? getTradePress() : Promise.resolve([]),
     ]);
-    const tradeMatches = searchTradePress(tradeAll, row.terms);
+    const tradeMatches = searchTradePress(tradeAll, autoTerms);
     const seen = new Set();
     const merged = [];
     for (const items of [...batches, tradeMatches]) {
       for (const item of items) {
-        const key = item.link || item.title;
+        // Bing wraps links in redirect URLs with unique tracking params — extract real URL for dedup
+        let key = item.link || item.title;
+        if (key && key.includes('bing.com/news/apiclick')) {
+          try { const m = key.match(/[?&]url=([^&]+)/i); if (m) key = decodeURIComponent(m[1]); } catch {}
+        }
         if (!seen.has(key)) { seen.add(key); merged.push(item); }
       }
     }
     merged.sort((a, b) => {
+      // DC-relevant articles always rank above general provider news
+      if (applyFilter) {
+        const dca = isDcRelevant(a.title, a.description) ? 1 : 0;
+        const dcb = isDcRelevant(b.title, b.description) ? 1 : 0;
+        if (dcb !== dca) return dcb - dca;
+      }
       const ta = a.pubDate ? new Date(a.pubDate).getTime() : 0;
       const tb = b.pubDate ? new Date(b.pubDate).getTime() : 0;
       return tb - ta;
@@ -604,7 +633,7 @@
     btn.disabled = false;
   }
 
-  const RADAR_CACHE_KEY = 'radar_v5';
+  const RADAR_CACHE_KEY = 'radar_v6';
 
   const TRIGGER_DEFS = {
     ma_event:            { label: 'M&A / Transaction',     weight: 28, color: '#0891b2' },
@@ -786,6 +815,65 @@
     { name: 'Specsavers',              sector: 'Private · Retail',         query: 'Specsavers UK pension employer jobs restructuring acquisition' },
     { name: 'Timpson Group',           sector: 'Private · Retail',         query: 'Timpson Group UK pension employer jobs restructuring acquisition' },
     { name: 'Domestic & General',      sector: 'Private · Services',       query: 'Domestic General UK pension jobs restructuring acquisition' },
+    // ── Global banking & financial services ──────────────────────────────────
+    { name: 'Goldman Sachs UK',        sector: 'Global · Banking',          query: 'Goldman Sachs UK employer pension jobs restructuring redundancy',  query2: 'Goldman Sachs UK pension scheme DC annual review 2026' },
+    { name: 'JPMorgan UK',             sector: 'Global · Banking',          query: 'JPMorgan Chase UK employer pension jobs restructuring redundancy', query2: 'JPMorgan UK pension scheme DC review consolidation 2026' },
+    { name: 'Morgan Stanley UK',       sector: 'Global · Banking',          query: 'Morgan Stanley UK employer pension jobs restructuring redundancy' },
+    { name: 'Deutsche Bank UK',        sector: 'Global · Banking',          query: 'Deutsche Bank UK employer pension jobs restructuring redundancy',  query2: 'Deutsche Bank UK pension scheme review consolidation 2026' },
+    { name: 'Citigroup UK',            sector: 'Global · Banking',          query: 'Citigroup Citi UK employer pension jobs restructuring redundancy' },
+    { name: 'BNY Mellon UK',           sector: 'Global · Asset Mgmt',       query: 'BNY Mellon UK employer pension jobs restructuring redundancy' },
+    { name: 'State Street UK',         sector: 'Global · Asset Mgmt',       query: 'State Street UK employer pension jobs restructuring redundancy' },
+    { name: 'BlackRock UK',            sector: 'Global · Asset Mgmt',       query: 'BlackRock UK employer pension jobs restructuring redundancy' },
+    { name: 'Schroders',               sector: 'FTSE 100 · Asset Mgmt',     query: 'Schroders UK employer pension jobs restructuring acquisition' },
+    { name: 'abrdn',                   sector: 'FTSE 100 · Asset Mgmt',     query: 'abrdn UK employer pension jobs restructuring acquisition',        query2: 'abrdn pension scheme consolidation DC review 2026' },
+    // ── Global pharma & healthcare ────────────────────────────────────────────
+    { name: 'Pfizer UK',               sector: 'Global · Pharma',           query: 'Pfizer UK employer pension jobs restructuring redundancy',        query2: 'Pfizer UK pension scheme DC consolidation master trust 2026' },
+    { name: 'Novartis UK',             sector: 'Global · Pharma',           query: 'Novartis UK employer pension jobs restructuring redundancy' },
+    { name: 'Johnson & Johnson UK',    sector: 'Global · Pharma',           query: 'Johnson Johnson J&J UK employer pension jobs restructuring redundancy' },
+    { name: 'Bristol-Myers Squibb UK', sector: 'Global · Pharma',           query: 'Bristol Myers Squibb BMS UK employer pension jobs restructuring' },
+    { name: 'Sanofi UK',               sector: 'Global · Pharma',           query: 'Sanofi UK employer pension jobs restructuring redundancy' },
+    { name: 'Novo Nordisk UK',         sector: 'Global · Pharma',           query: 'Novo Nordisk UK employer pension jobs restructuring expansion' },
+    { name: 'Siemens Healthineers UK', sector: 'Global · MedTech',          query: 'Siemens Healthineers UK employer pension jobs restructuring' },
+    // ── Global tech & IT ──────────────────────────────────────────────────────
+    { name: 'Oracle UK',               sector: 'Global · Tech',             query: 'Oracle UK employer pension jobs restructuring redundancy acquisition' },
+    { name: 'SAP UK',                  sector: 'Global · Tech',             query: 'SAP UK employer pension jobs restructuring redundancy acquisition' },
+    { name: 'Cisco UK',                sector: 'Global · Tech',             query: 'Cisco UK employer pension jobs restructuring redundancy acquisition' },
+    { name: 'Dell Technologies UK',    sector: 'Global · Tech',             query: 'Dell Technologies UK employer pension jobs restructuring redundancy' },
+    { name: 'ServiceNow UK',           sector: 'Global · Tech',             query: 'ServiceNow UK employer pension jobs restructuring expansion' },
+    { name: 'Workday UK',              sector: 'Global · Tech',             query: 'Workday UK employer pension jobs restructuring expansion' },
+    // ── Global automotive ─────────────────────────────────────────────────────
+    { name: 'Ford UK',                 sector: 'Global · Automotive',       query: 'Ford Motor UK employer pension jobs restructuring redundancy',    query2: 'Ford UK pension scheme DC annual statement consolidation 2026' },
+    { name: 'BMW / MINI UK',           sector: 'Global · Automotive',       query: 'BMW MINI UK employer pension jobs restructuring redundancy' },
+    { name: 'Toyota UK',               sector: 'Global · Automotive',       query: 'Toyota UK employer pension jobs restructuring redundancy' },
+    { name: 'Vauxhall / Stellantis',   sector: 'Global · Automotive',       query: 'Vauxhall Stellantis UK employer pension jobs restructuring redundancy', query2: 'Vauxhall pension scheme DC consolidation 2026' },
+    { name: 'Nissan UK',               sector: 'Global · Automotive',       query: 'Nissan UK Sunderland employer pension jobs restructuring redundancy' },
+    // ── Global energy ─────────────────────────────────────────────────────────
+    { name: 'E.ON UK',                 sector: 'Global · Energy',           query: 'E.ON UK employer pension jobs restructuring acquisition',        query2: 'E.ON UK pension scheme DC consolidation master trust 2026' },
+    { name: 'EDF Energy UK',           sector: 'Global · Energy',           query: 'EDF Energy UK employer pension jobs restructuring acquisition',  query2: 'EDF Energy UK pension scheme DC review consolidation 2026' },
+    { name: 'ScottishPower',           sector: 'Global · Energy',           query: 'ScottishPower Iberdrola UK employer pension jobs restructuring', query2: 'ScottishPower pension scheme DC review consolidation 2026' },
+    { name: 'Ørsted UK',               sector: 'Global · Energy',           query: 'Orsted UK employer pension jobs restructuring expansion' },
+    { name: 'Siemens UK',              sector: 'Global · Engineering',      query: 'Siemens UK employer pension jobs restructuring acquisition',     query2: 'Siemens UK pension scheme annual report consolidation 2026' },
+    // ── Hospitality / consumer ────────────────────────────────────────────────
+    { name: "McDonald's UK",           sector: 'Global · Hospitality',      query: "McDonald's UK employer pension jobs restructuring expansion" },
+    { name: 'Starbucks UK',            sector: 'Global · Hospitality',      query: 'Starbucks UK employer pension jobs restructuring expansion' },
+    { name: 'H&M UK',                  sector: 'Global · Retail',           query: 'H&M UK employer pension jobs restructuring expansion' },
+    // ── Media / public sector ─────────────────────────────────────────────────
+    { name: 'BBC',                     sector: 'Public · Media',            query: 'BBC UK employer pension jobs restructuring redundancy',          query2: 'BBC pension scheme DC workplace review consolidation 2026' },
+    { name: 'Channel 4',               sector: 'Public · Media',            query: 'Channel 4 UK employer pension jobs restructuring acquisition' },
+    // ── Construction & infrastructure ─────────────────────────────────────────
+    { name: 'Balfour Beatty',          sector: 'FTSE 250 · Construction',   query: 'Balfour Beatty UK pension jobs restructuring acquisition',       query2: 'Balfour Beatty pension scheme DC consolidation 2026' },
+    { name: 'Laing O\'Rourke',         sector: 'Private · Construction',    query: "Laing O'Rourke UK pension jobs restructuring acquisition" },
+    { name: 'AECOM UK',                sector: 'Global · Engineering',      query: 'AECOM UK employer pension jobs restructuring acquisition' },
+    { name: 'Jacobs UK',               sector: 'Global · Engineering',      query: 'Jacobs Solutions UK employer pension jobs restructuring acquisition' },
+    // ── Logistics ─────────────────────────────────────────────────────────────
+    { name: 'Evri UK',                 sector: 'Private · Logistics',       query: 'Evri Hermes UK employer pension jobs restructuring acquisition' },
+    { name: 'FedEx UK',                sector: 'Global · Logistics',        query: 'FedEx UK employer pension jobs restructuring acquisition' },
+    { name: 'UPS UK',                  sector: 'Global · Logistics',        query: 'UPS UK employer pension jobs restructuring acquisition' },
+    // ── Market intelligence catch-alls ────────────────────────────────────────
+    { name: 'Pension Tender Watch',    sector: 'Market · Intelligence',     query: 'employer pension scheme tender UK 2026',                        query2: 'workplace pension provider contract award UK 2026' },
+    { name: 'Scheme Wind-up Watch',    sector: 'Market · Intelligence',     query: 'DC pension scheme winding up master trust 2026 UK',            query2: 'pension scheme wind-up notice employer bulk transfer 2026' },
+    { name: 'New Provider Wins',       sector: 'Market · Intelligence',     query: 'master trust new employer wins workplace pension UK 2026',      query2: 'employer switches workplace pension provider UK 2026' },
+    { name: 'PE Pension Signals',      sector: 'Market · Intelligence',     query: 'private equity acquisition UK employer pension review 2026',    query2: 'PE buyout UK company pension scheme review consolidation 2026' },
   ];
 
   function classifyTriggers(title) {
