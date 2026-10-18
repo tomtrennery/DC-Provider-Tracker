@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UK DC Provider News Tracker</title>
+  <title>DC Pension Market Tracker</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -24,426 +24,523 @@
       flex-wrap: wrap;
       gap: 12px;
     }
-
-    header h1 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-
-    header .meta {
-      font-size: 0.78rem;
-      color: #aab3cc;
-    }
+    header h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: 0.02em; }
+    header .meta { font-size: 0.78rem; color: #aab3cc; }
 
     #refresh-btn {
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 500;
-      transition: background 0.2s;
-      white-space: nowrap;
+      background: #2563eb; color: #fff; border: none;
+      padding: 8px 16px; border-radius: 6px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 500; transition: background 0.2s; white-space: nowrap;
     }
-
     #refresh-btn:hover:not(:disabled) { background: #1d4ed8; }
     #refresh-btn:disabled { background: #4b5563; cursor: not-allowed; }
 
+    .tabs { background: #16213e; display: flex; padding: 0 24px; gap: 2px; }
+    .tab-btn {
+      background: none; border: none; border-bottom: 3px solid transparent;
+      color: #94a3b8; padding: 10px 18px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 500; transition: color 0.15s, border-color 0.15s; white-space: nowrap;
+    }
+    .tab-btn:hover { color: #e2e8f0; }
+    .tab-btn.active { color: #fff; border-bottom-color: #2563eb; }
+
     #status-bar {
-      background: #1e293b;
-      color: #94a3b8;
-      font-size: 0.75rem;
-      padding: 6px 24px;
-      min-height: 28px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      background: #1e293b; color: #94a3b8; font-size: 0.75rem;
+      padding: 6px 24px; min-height: 28px; display: flex; align-items: center; gap: 8px;
     }
-
     .spinner {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border: 2px solid #334155;
-      border-top-color: #60a5fa;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
+      display: inline-block; width: 12px; height: 12px;
+      border: 2px solid #334155; border-top-color: #60a5fa;
+      border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .table-wrapper {
-      overflow-x: auto;
-      padding: 20px 24px 32px;
-    }
+    .table-wrapper { overflow-x: auto; padding: 20px 24px 32px; }
 
     table {
-      border-collapse: collapse;
-      min-width: 900px;
-      width: 100%;
-      background: #fff;
-      border-radius: 10px;
-      overflow: hidden;
+      border-collapse: collapse; min-width: 900px; width: 100%;
+      background: #fff; border-radius: 10px; overflow: hidden;
       box-shadow: 0 1px 6px rgba(0,0,0,0.08);
     }
-
     thead th {
-      background: #1a1a2e;
-      color: #e2e8f0;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      padding: 12px 14px;
-      text-align: left;
-      white-space: nowrap;
+      background: #1a1a2e; color: #e2e8f0; font-size: 0.72rem;
+      font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 12px 14px; text-align: left; white-space: nowrap;
     }
-
     thead th:first-child {
-      position: sticky;
-      left: 0;
-      z-index: 2;
-      background: #0f0f1e;
-      min-width: 140px;
+      position: sticky; left: 0; z-index: 2; background: #0f0f1e; min-width: 160px;
     }
-
     tbody tr:nth-child(even) td { background: #f8fafc; }
     tbody tr:hover td { background: #eff6ff; }
-
     td {
-      padding: 12px 14px;
-      vertical-align: top;
-      font-size: 0.82rem;
-      border-bottom: 1px solid #e2e8f0;
+      padding: 12px 14px; vertical-align: top;
+      font-size: 0.82rem; border-bottom: 1px solid #e2e8f0;
     }
-
     td:first-child {
-      position: sticky;
-      left: 0;
-      background: #fff;
-      font-weight: 700;
-      font-size: 0.85rem;
-      border-left: 4px solid var(--brand);
-      white-space: nowrap;
-      z-index: 1;
-      box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+      position: sticky; left: 0; background: #fff; font-weight: 700;
+      font-size: 0.85rem; border-left: 4px solid var(--brand); white-space: nowrap;
+      z-index: 1; box-shadow: 2px 0 4px rgba(0,0,0,0.04);
     }
-
     tbody tr:nth-child(even) td:first-child { background: #f8fafc; }
     tbody tr:hover td:first-child { background: #eff6ff; }
 
-    .news-cell {
-      max-width: 200px;
-      min-width: 160px;
-    }
-
+    .news-cell { max-width: 200px; min-width: 160px; }
     .news-cell a {
-      color: #1d4ed8;
-      text-decoration: none;
-      font-weight: 500;
-      line-height: 1.35;
-      display: block;
-      margin-bottom: 4px;
+      color: #1d4ed8; text-decoration: none; font-weight: 500;
+      line-height: 1.35; display: block; margin-bottom: 4px;
     }
-
     .news-cell a:hover { text-decoration: underline; color: #1e40af; }
+    .news-cell .source { color: #64748b; font-size: 0.72rem; }
+    .news-cell .date { color: #94a3b8; font-size: 0.70rem; margin-top: 2px; }
 
-    .news-cell .source {
-      color: #64748b;
-      font-size: 0.72rem;
-    }
-
-    .news-cell .date {
-      color: #94a3b8;
-      font-size: 0.70rem;
-      margin-top: 2px;
-    }
-
-    .error-cell {
-      color: #ef4444;
-      font-size: 0.75rem;
-      font-style: italic;
-    }
-
-    .empty-cell {
-      color: #cbd5e1;
-      font-size: 0.75rem;
-      font-style: italic;
-    }
+    .error-cell { color: #ef4444; font-size: 0.75rem; font-style: italic; }
+    .empty-cell { color: #cbd5e1; font-size: 0.75rem; font-style: italic; }
 
     footer {
-      text-align: center;
-      padding: 16px 24px;
-      font-size: 0.72rem;
-      color: #94a3b8;
-      border-top: 1px solid #e2e8f0;
+      text-align: center; padding: 16px 24px; font-size: 0.72rem;
+      color: #94a3b8; border-top: 1px solid #e2e8f0;
+    }
+    #next-refresh { font-weight: 500; color: #60a5fa; }
+
+    /* ── Pin bar ─────────────────────────────────────────────────────────────── */
+
+    .pin-bar {
+      padding: 14px 24px 12px;
+      background: #1e293b;
+      border-bottom: 1px solid #2d3f55;
+    }
+    .pin-bar-row { display: flex; gap: 10px; align-items: center; max-width: 680px; }
+    #pin-input {
+      flex: 1; background: #0f172a; border: 1px solid #334155;
+      border-radius: 6px; color: #e2e8f0; padding: 8px 12px;
+      font-size: 0.84rem; outline: none; font-family: inherit;
+    }
+    #pin-input:focus { border-color: #3b82f6; }
+    #pin-input::placeholder { color: #475569; }
+    .pin-submit-btn {
+      background: #1d4ed8; color: #fff; border: none;
+      padding: 8px 14px; border-radius: 6px; cursor: pointer;
+      font-size: 0.82rem; font-weight: 500; white-space: nowrap;
+    }
+    .pin-submit-btn:hover { background: #1e40af; }
+    .pin-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .pin-tag {
+      background: #1e3a5f; border: 1px solid #2563eb55; color: #93c5fd;
+      border-radius: 20px; padding: 3px 8px 3px 12px;
+      font-size: 0.75rem; display: flex; align-items: center; gap: 5px;
+    }
+    .pin-tag button {
+      background: none; border: none; color: #60a5fa;
+      cursor: pointer; font-size: 0.9rem; padding: 0; line-height: 1;
+    }
+    .pin-tag button:hover { color: #fff; }
+
+    /* ── Trigger Radar ───────────────────────────────────────────────────────── */
+
+    .radar-rank { font-size: 0.88rem; font-weight: 700; color: #94a3b8; text-align: center; width: 36px; }
+    .radar-sector { font-size: 0.68rem; color: #94a3b8; margin-top: 2px; font-weight: 400; }
+    .pinned-badge {
+      display: inline-block; font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.04em; background: #1e3a5f; color: #60a5fa;
+      border: 1px solid #2563eb55; padding: 1px 5px; border-radius: 3px; margin-top: 3px;
+    }
+    .radar-score-cell { min-width: 90px; white-space: nowrap; }
+    .radar-score-num { font-size: 1.05rem; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+    .radar-score-bar { height: 4px; background: #e2e8f0; border-radius: 2px; width: 60px; }
+    .radar-score-fill { height: 100%; border-radius: 2px; }
+    .radar-badge {
+      display: inline-block; font-size: 0.67rem; font-weight: 600;
+      padding: 2px 7px; border-radius: 10px; border: 1px solid;
+      margin: 2px 3px 2px 0; white-space: nowrap;
+    }
+    .radar-no-trigger { font-size: 0.72rem; color: #94a3b8; font-style: italic; }
+    .radar-evidence { min-width: 260px; }
+    .radar-evidence a {
+      color: #1d4ed8; text-decoration: none; font-weight: 500;
+      font-size: 0.78rem; line-height: 1.35; display: block;
+    }
+    .radar-evidence a:hover { text-decoration: underline; color: #1e40af; }
+    .radar-evidence-meta { font-size: 0.68rem; color: #94a3b8; margin: 1px 0 8px; }
+
+    .assess-btn {
+      background: none; border: 1px solid #334155; color: #94a3b8;
+      border-radius: 4px; padding: 4px 9px; font-size: 0.75rem;
+      cursor: pointer; white-space: nowrap; transition: all 0.15s; margin-top: 6px;
+    }
+    .assess-btn:hover:not(:disabled) { border-color: #6366f1; color: #a5b4fc; background: #1e1b4b44; }
+    .assess-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .radar-note {
+      padding: 12px 24px 28px; font-size: 0.72rem; color: #94a3b8;
+      line-height: 1.65; max-width: 860px;
     }
 
-    #next-refresh {
-      font-weight: 500;
-      color: #60a5fa;
+    /* ── AI Assessment Modal ─────────────────────────────────────────────────── */
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.72); z-index: 1000;
+      align-items: center; justify-content: center; padding: 24px;
     }
+    .modal-box {
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      max-width: 540px; width: 100%; padding: 28px 28px 24px; position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 14px; right: 16px;
+      background: none; border: none; color: #64748b;
+      font-size: 1.2rem; cursor: pointer; line-height: 1;
+    }
+    .modal-close:hover { color: #e2e8f0; }
+    .modal-employer { font-size: 1.05rem; font-weight: 700; color: #e2e8f0; margin-bottom: 14px; }
+    .modal-likelihood {
+      display: inline-block; font-size: 0.73rem; font-weight: 700;
+      letter-spacing: 0.08em; padding: 4px 12px; border-radius: 4px;
+      color: #fff; margin-bottom: 16px;
+    }
+    .modal-label {
+      font-size: 0.67rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: #64748b; margin: 14px 0 4px;
+    }
+    .modal-reason { font-size: 0.85rem; color: #cbd5e1; line-height: 1.65; }
+    .modal-watch { font-size: 0.85rem; color: #93c5fd; line-height: 1.65; font-style: italic; }
+    .modal-cache-note { margin-top: 18px; font-size: 0.68rem; color: #475569; }
+    .modal-refresh-link { color: #60a5fa; cursor: pointer; text-decoration: underline; }
   </style>
 </head>
 <body>
 
 <header>
   <div>
-    <h1>UK DC Provider News Tracker</h1>
+    <h1>DC Pension Market Tracker</h1>
     <div class="meta" id="last-updated">Loading…</div>
   </div>
-  <button id="refresh-btn" onclick="loadData(true)">Refresh Now</button>
+  <button id="refresh-btn" onclick="activeTab==='radar' ? loadRadarData(true) : loadTabData(activeTab, true)">Refresh Now</button>
 </header>
+
+<nav class="tabs">
+  <button class="tab-btn active"  id="tab-btn-providers" onclick="switchTab('providers')">DC Providers</button>
+  <button class="tab-btn"         id="tab-btn-bill"      onclick="switchTab('bill')">Regulatory Change</button>
+  <button class="tab-btn"         id="tab-btn-radar"     onclick="switchTab('radar')">Horizon Scanner</button>
+</nav>
 
 <div id="status-bar"><span class="spinner"></span><span id="status-text">Initialising…</span></div>
 
-<div class="table-wrapper">
-  <table id="news-table">
-    <thead>
-      <tr>
-        <th>Provider</th>
-        <th>Latest</th>
-        <th>2nd</th>
-        <th>3rd</th>
-        <th>4th</th>
-        <th>5th</th>
-      </tr>
-    </thead>
-    <tbody id="table-body">
-      <tr><td colspan="6" style="text-align:center;padding:40px;color:#94a3b8;">Loading news…</td></tr>
-    </tbody>
-  </table>
+<!-- DC Providers tab -->
+<div id="panel-providers">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr><th>Provider</th><th>Latest</th><th>2nd</th><th>3rd</th><th>4th</th><th>5th</th></tr>
+      </thead>
+      <tbody id="providers-body">
+        <tr><td colspan="6" style="text-align:center;padding:40px;color:#94a3b8;">Loading news…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Regulatory Change tab -->
+<div id="panel-bill" style="display:none">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr><th>Topic</th><th>Latest</th><th>2nd</th><th>3rd</th><th>4th</th><th>5th</th></tr>
+      </thead>
+      <tbody id="bill-body">
+        <tr><td colspan="6" style="text-align:center;padding:40px;color:#94a3b8;">Loading news…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Horizon Scanner tab -->
+<div id="panel-radar" style="display:none">
+  <div class="pin-bar">
+    <div class="pin-bar-row">
+      <input type="text" id="pin-input"
+             placeholder="Pin an employer not in the scanner (e.g. 'Biffa', 'Tata Steel UK')…"
+             onkeydown="if(event.key==='Enter') pinFromSearch()">
+      <button class="pin-submit-btn" onclick="pinFromSearch()">📌 Pin &amp; Track</button>
+    </div>
+    <div class="pin-tags" id="pin-tags"></div>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th style="min-width:36px;text-align:center">#</th>
+          <th>Employer</th>
+          <th>Score</th>
+          <th>Signals</th>
+          <th>Evidence</th>
+        </tr>
+      </thead>
+      <tbody id="radar-body">
+        <tr><td colspan="6" style="text-align:center;padding:40px;color:#94a3b8;">Select this tab to run the scan.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="radar-note">
+    Universe: ~165 large UK employers across FTSE 100/250, large private, and PE-backed companies. Score = recency-weighted trigger strength (0–100): red ≥ 60, amber ≥ 30, grey &lt; 30. Cache refreshes every 6 hours. Pinned employers (📌) always show at the top regardless of score.
+  </div>
+</div>
+
+<!-- AI Assessment modal -->
+<div class="modal-overlay" id="ai-modal" onclick="if(event.target===this) closeModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-employer" id="modal-employer"></div>
+    <span class="modal-likelihood" id="modal-likelihood"></span>
+    <div class="modal-label">Reasoning</div>
+    <div class="modal-reason" id="modal-reason"></div>
+    <div class="modal-label">Watch for</div>
+    <div class="modal-watch" id="modal-watch"></div>
+    <div class="modal-cache-note" id="modal-cache-note"></div>
+  </div>
 </div>
 
 <footer>
-  Data sourced via Google News RSS. Cache refreshes every 24 hours —
+  News via Google News RSS. Cache refreshes every 24 hours —
   <span id="next-refresh">calculating…</span>.
-  Page must remain open to auto-refresh. For server-based background updates, contact your developer.
+  Page must remain open to auto-refresh.
 </footer>
 
 <script>
-  // Paste your deployed Cloudflare Worker URL here, e.g.:
-  // 'https://pension-news-proxy.your-subdomain.workers.dev'
-  // Leave as empty string to fall back to public CORS proxies.
-  const WORKER_URL = 'https://pension-news-proxy.tom-trennery.workers.dev';
+  const WORKER_URL = 'https://pension-tracker-worker.tom-trennery.workers.dev';
 
-  const CACHE_KEY = 'pension_news_v2';
-  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in ms
+  const CACHE_TTL        = 24 * 60 * 60 * 1000;
+  const RADAR_CACHE_TTL  =  6 * 60 * 60 * 1000;
+  const ASSESS_CACHE_TTL = 24 * 60 * 60 * 1000;
   const MAX_ITEMS = 5;
 
+  const TRADE_FEEDS = [
+    'https://corporate-adviser.com/feed',
+    'https://corporate-adviser.com/feed/?paged=2',
+    'https://corporate-adviser.com/feed/?paged=3',
+    'https://corporate-adviser.com/feed/?paged=4',
+    'https://moneymarketing.co.uk/category/pensions/feed/',
+    'https://www.employeebenefits.co.uk/feed',
+  ];
+  let _tradePressPromise = null;
+  let _tradePressExpiry  = 0;
+
   const PROVIDERS = [
-    { name: 'Aon',                    query: 'Aon pension UK',                   brand: '#d97706' },
-    { name: 'Aviva',                  query: 'Aviva pension UK',                 brand: '#16a34a' },
-    { name: 'HL Workplace',           query: '"HL Workplace"',                   brand: '#15803d' },
-    { name: 'Legal & General',        query: '"Legal & General" pension',        brand: '#dc2626' },
-    { name: 'Mercer DC Master Trust', query: '"Mercer" "DC Master Trust"',       brand: '#0d9488' },
-    { name: 'NEST',                   query: '"NEST" pension UK',                brand: '#0c4a6e' },
-    { name: 'Now:Pensions',           query: '"Now:Pensions" OR "Now Pensions"', brand: '#ea580c' },
-    { name: 'Penfold',                query: '"Penfold" pension UK',             brand: '#6366f1' },
-    { name: "People's Pension",       query: '"People\'s Pension"',              brand: '#be185d' },
-    { name: 'Scottish Widows',        query: '"Scottish Widows" pension',        brand: '#004b87' },
-    { name: 'Smart Pension',          query: '"Smart Pension"',                  brand: '#5b21b6' },
-    { name: 'Standard Life',          query: '"Standard Life" pension UK',       brand: '#7c3aed' },
-    { name: 'TPT',                    query: '"TPT Retirement Solutions"',       brand: '#92400e' },
-    { name: 'WTW LifeSight',          query: '"LifeSight" pension',              brand: '#0891b2' },
+    { name: 'Aon',             queries: ['Aon master trust pension UK',           'Aon retirement pension UK'],          terms: ['aon'],                                      brand: '#d97706' },
+    { name: 'Aviva',           queries: ['Aviva workplace pension UK',            'Aviva pension auto enrolment UK'],    terms: ['aviva'],                                    brand: '#16a34a' },
+    { name: 'Fidelity',        queries: ['Fidelity workplace pension UK',         'Fidelity pension UK'],                terms: ['fidelity'],                                 brand: '#6b7280' },
+    { name: 'HL Workplace',    queries: ['Hargreaves Lansdown workplace pension', 'Hargreaves Lansdown pension UK'],     terms: ['hargreaves lansdown', 'hl workplace'],       brand: '#15803d' },
+    { name: 'Legal & General', queries: ['Legal General workplace pension UK',    'Legal General pension UK'],           terms: ['legal & general', 'legal and general'],     brand: '#dc2626' },
+    { name: 'Mercer DC',       queries: ['Marsh McLennan pension UK 2026', 'Mercer pension UK 2026', 'Mercer master trust UK', 'Mercer DC workplace pensions'], terms: ['mercer', 'marsh mclennan'],                 brand: '#0d9488' },
+    { name: 'NEST',            queries: ['NEST pension UK 2026',                  'National Employment Savings Trust investment'], terms: ['nest pension', 'national employment savings'],brand: '#0c4a6e' },
+    { name: 'Now:Pensions',    queries: ['Now Pensions UK workplace',             'Now Pensions auto enrolment UK'],    terms: ['now pensions', 'now: pensions'],             brand: '#ea580c' },
+    { name: "People's Pension",queries: ["People's Pension workplace UK",         "People's Pension master trust"],      terms: ["people's pension"],                         brand: '#be185d' },
+    { name: 'Royal London',    queries: ['Royal London workplace pension UK',     'Royal London pension UK'],           terms: ['royal london'],                             brand: '#1d4ed8' },
+    { name: 'Scottish Widows', queries: ['Scottish Widows workplace pension UK',  'Scottish Widows pension UK'],         terms: ['scottish widows'],                          brand: '#004b87' },
+    { name: 'Smart Pension',   queries: ['Smart Pension UK 2026', 'Smart Pension master trust 2026', 'Smart Pension workplace pension'],  terms: ['smart pension'],                            brand: '#5b21b6' },
+    { name: 'Standard Life',   queries: ['Standard Life workplace pension UK',    'Standard Life pension UK'],           terms: ['standard life'],                            brand: '#7c3aed' },
+    { name: 'TPT',             queries: ['TPT Retirement Solutions pension UK',   'TPT pension master trust UK'],        terms: ['tpt retirement', 'tpt pension'],             brand: '#92400e' },
+    { name: 'WTW LifeSight',   queries: ['WTW LifeSight pension UK', 'Willis Towers Watson pension UK', 'WTW Cushon acquisition pension'],  terms: ['lifesight', 'wtw', 'willis towers watson', 'cushon'],  brand: '#0891b2' },
   ];
 
-  let refreshTimer = null;
+  const BILL_TOPICS = [
+    { name: 'Pension Schemes Act',  queries: ['Pension Schemes Act UK 2025 2026',          'Pension Schemes Bill parliament'],         terms: ['pension schemes act', 'pension schemes bill', 'pensions bill'], brand: '#1d4ed8' },
+    { name: 'TPR & DWP',            queries: ['Pensions Regulator DWP consultation 2025',  'pensions regulator UK guidance'],          terms: ['pensions regulator', 'tpr ', 'dwp pension'],                 brand: '#7c3aed' },
+    { name: 'Value for Money',      queries: ['DC pension value for money VFM UK 2025',    'workplace pension VFM framework'],         terms: ['value for money', 'vfm'],                                    brand: '#ea580c' },
+    { name: 'Pension Dashboards',   queries: ['pension dashboards UK programme 2025',      'pension dashboard data connection'],       terms: ['pension dashboard'],                                         brand: '#dc2626' },
+    { name: 'Auto-enrolment',       queries: ['automatic enrolment pension UK 2025',       'auto enrolment contributions UK'],         terms: ['auto-enrolment', 'auto enrolment', 'automatic enrolment'],  brand: '#0d9488' },
+    { name: 'CDC & Innovation',       queries: ['collective DC pension UK CDC 2025',         'CDC collective defined contribution UK'],  terms: ['collective dc', 'cdc pension', 'collective defined'],        brand: '#16a34a' },
+    { name: 'DC Scheme Consolidation',queries: ['DC pension scheme consolidation master trust 2026', 'pension scheme wind-up bulk transfer master trust 2025 2026'], terms: ['scheme consolidation', 'bulk transfer', 'wind-up', 'winding up', 'master trust transfer', 'chair statement pension'], brand: '#b45309' },
+  ];
 
-  // Build the proxy list at runtime so WORKER_URL is included when set.
+  const TABS = {
+    providers: { cacheKey: 'pension_news_v9',  items: PROVIDERS,   tbodyId: 'providers-body', applyFilter: true  },
+    bill:      { cacheKey: 'pension_regs_v4',  items: BILL_TOPICS, tbodyId: 'bill-body',      applyFilter: false },
+  };
+
+  let activeTab = 'providers';
+  const refreshTimers = {};
+
   function buildProxies() {
-    const list = []
+    const list = [];
     if (WORKER_URL) {
       list.push({
-        name:    'worker',
-        build:   rssUrl => WORKER_URL + '?url=' + encodeURIComponent(rssUrl),
-        extract: r => r.text()
-      })
+        name: 'worker',
+        build: u => WORKER_URL + '?url=' + encodeURIComponent(u),
+        extract: r => r.text(),
+      });
     }
-    // Public CORS proxies as fallback
     list.push(
+      { name: 'allorigins',    build: u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u), extract: r => r.text() },
       {
-        name:    'corsproxy.io',
-        build:   rssUrl => 'https://corsproxy.io/?' + encodeURIComponent(rssUrl),
-        extract: r => r.text()
-      },
-      {
-        name:    'allorigins/raw',
-        build:   rssUrl => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(rssUrl),
-        extract: r => r.text()
-      },
-      {
-        name:    'allorigins/get',
-        build:   rssUrl => 'https://api.allorigins.win/get?url=' + encodeURIComponent(rssUrl),
+        name: 'allorigins/get',
+        build: u => 'https://api.allorigins.win/get?url=' + encodeURIComponent(u),
         extract: async r => {
           const j = await r.json();
-          if (!j.contents) throw new Error('empty allorigins response');
-          const raw = j.contents;
-          return raw.startsWith('&lt;') ? raw.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'") : raw;
-        }
-      },
-      {
-        name:    'codetabs',
-        build:   rssUrl => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(rssUrl),
-        extract: r => r.text()
+          if (!j.contents) throw new Error('empty');
+          return j.contents.startsWith('&lt;')
+            ? j.contents.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&')
+            : j.contents;
+        },
       }
-    )
-    return list
+    );
+    return list;
   }
 
-  function gnRssUrl(query) {
-    return 'https://news.google.com/rss/search?q='
-      + encodeURIComponent(query)
-      + '&hl=en-GB&gl=GB&ceid=GB:en';
+  function bingRssUrl(query) {
+    return 'https://www.bing.com/news/search?q=' + encodeURIComponent(query) + '&format=rss&cc=GB';
   }
 
-  // Keywords indicating DB pension risk transfer articles to exclude
-  const DB_FILTER = [
-    'buy-in', 'buy-out', 'buyout', 'buy out',
-    'bulk annuity', 'bulk purchase annuity',
-    'pension risk transfer',
-    'longevity swap',
-    'liability driven',
-    'endgame',
-  ];
+  const DB_FILTER = ['buy-in','buy-out','buyout','buy out','bulk annuity','bulk purchase annuity','pension risk transfer','longevity swap','liability driven','endgame'];
+  function isDbArticle(title) { const l = title.toLowerCase(); return DB_FILTER.some(k => l.includes(k)); }
 
-  function isDbArticle(title) {
-    const lower = title.toLowerCase();
-    return DB_FILTER.some(kw => lower.includes(kw));
-  }
-
-  function parseRssXml(text, providerName) {
-    // Strip UTF-8 BOM and whitespace, then verify this is actually XML before
-    // attempting to parse. Proxies often return HTML error/captcha pages instead
-    // of RSS, which causes DOMParser to report a parsererror.
-    const clean = text.replace(/^\uFEFF/, '').trim();
-    if (!clean.startsWith('<?xml') && !clean.startsWith('<rss') && !clean.startsWith('<feed')) {
-      throw new Error('proxy returned non-XML: "' + clean.slice(0, 80).replace(/\s+/g, ' ') + '"');
-    }
+  function parseRssXml(text, rowName, applyFilter) {
+    const clean = text.replace(/^﻿/, '').trim();
+    if (!clean.startsWith('<?xml') && !clean.startsWith('<rss') && !clean.startsWith('<feed'))
+      throw new Error('non-XML: "' + clean.slice(0,60).replace(/\s+/g,' ') + '"');
     const xml = new DOMParser().parseFromString(clean, 'application/xml');
     if (xml.querySelector('parsererror')) throw new Error('XML parse failed');
+    const cutoff = Date.now() - 270 * 24 * 60 * 60 * 1000;
     return [...xml.querySelectorAll('item')]
       .map(item => ({
         title:   item.querySelector('title')?.textContent?.trim() || '(no title)',
-        link:    item.querySelector('link')?.textContent?.trim()
-                   || item.querySelector('guid')?.textContent?.trim() || '#',
+        link:    item.querySelector('link')?.textContent?.trim() || item.querySelector('guid')?.textContent?.trim() || '#',
         pubDate: item.querySelector('pubDate')?.textContent?.trim() || '',
-        source:  item.querySelector('source')?.textContent?.trim() || providerName,
+        source:  (item.querySelector('source') || item.querySelector('Source'))?.textContent?.trim() || rowName,
       }))
-      .filter(item => !isDbArticle(item.title))
-      .sort((a, b) => {
+      .filter(i => {
+        const ts = i.pubDate ? new Date(i.pubDate).getTime() : Date.now();
+        if (ts < cutoff) return false;
+        return !applyFilter || !isDbArticle(i.title);
+      })
+      .sort((a,b) => {
         const ta = a.pubDate ? new Date(a.pubDate).getTime() : 0;
         const tb = b.pubDate ? new Date(b.pubDate).getTime() : 0;
-        return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
+        return (isNaN(tb)?0:tb) - (isNaN(ta)?0:ta);
       })
       .slice(0, MAX_ITEMS);
   }
 
   function fmtDate(str) {
     if (!str) return '';
+    try { return new Date(str).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }); }
+    catch { return str.slice(0,10); }
+  }
+
+  function truncate(str, n) { return str && str.length > n ? str.slice(0, n-1) + '…' : (str || ''); }
+
+  async function fetchOneFeed(url) {
+    if (!WORKER_URL) return [];
     try {
-      const d = new Date(str);
-      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    } catch { return str.slice(0, 10); }
+      const resp = await fetch(WORKER_URL + '?url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(20000) });
+      if (!resp.ok) return [];
+      const text = await resp.text();
+      return parseRssXml(text, '', false);
+    } catch { return []; }
   }
 
-  function truncate(str, n) {
-    if (!str) return '';
-    return str.length > n ? str.slice(0, n - 1) + '…' : str;
+  async function getTradePress() {
+    const now = Date.now();
+    if (_tradePressPromise && now < _tradePressExpiry) return _tradePressPromise;
+    _tradePressExpiry = now + 60 * 60 * 1000;
+    _tradePressPromise = Promise.all(TRADE_FEEDS.map(fetchOneFeed)).then(batches => batches.flat());
+    return _tradePressPromise;
   }
 
-  async function fetchProviderNews(provider) {
-    const rssUrl = gnRssUrl(provider.query);
-    let lastErr = null;
+  function searchTradePress(allArticles, terms) {
+    if (!terms || !terms.length) return [];
+    const lc = terms.map(t => t.toLowerCase());
+    return allArticles.filter(a => {
+      const hay = ((a.title || '') + ' ' + (a.description || '') + ' ' + (a.source || '')).toLowerCase();
+      return lc.some(t => hay.includes(t));
+    });
+  }
+
+  async function fetchOneQuery(query, rowName, applyFilter) {
+    const rssUrl = bingRssUrl(query);
     for (const proxy of buildProxies()) {
       try {
-        const resp = await fetch(proxy.build(rssUrl), { signal: AbortSignal.timeout(8000) });
+        const resp = await fetch(proxy.build(rssUrl), { signal: AbortSignal.timeout(22000) });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const text = await proxy.extract(resp);
-        const items = parseRssXml(text, provider.name);
-        return { provider: provider.name, brand: provider.brand, items, error: null };
-      } catch (err) {
-        console.warn(`[${provider.name}] proxy "${proxy.name}" failed:`, err.message);
-        lastErr = err.message;
+        return parseRssXml(text, rowName, applyFilter);
+      } catch { /* try next proxy */ }
+    }
+    return [];
+  }
+
+  async function fetchRowNews(row, applyFilter) {
+    const queries = Array.isArray(row.queries) ? row.queries : [row.query].filter(Boolean);
+    const [batches, tradeAll] = await Promise.all([
+      Promise.all(queries.map(q => fetchOneQuery(q, row.name, applyFilter))),
+      row.terms ? getTradePress() : Promise.resolve([]),
+    ]);
+    const tradeMatches = searchTradePress(tradeAll, row.terms);
+    const seen = new Set();
+    const merged = [];
+    for (const items of [...batches, tradeMatches]) {
+      for (const item of items) {
+        const key = item.link || item.title;
+        if (!seen.has(key)) { seen.add(key); merged.push(item); }
       }
     }
-    return { provider: provider.name, brand: provider.brand, items: [], error: lastErr };
+    merged.sort((a, b) => {
+      const ta = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+      const tb = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+      return tb - ta;
+    });
+    const items = merged.slice(0, MAX_ITEMS);
+    return { provider: row.name, brand: row.brand, items, error: items.length ? null : 'No recent articles found' };
   }
 
   function setStatus(msg, loading = false) {
     const bar = document.getElementById('status-bar');
-    const txt = document.getElementById('status-text');
     bar.innerHTML = '';
-    if (loading) {
-      const s = document.createElement('span');
-      s.className = 'spinner';
-      bar.appendChild(s);
-    }
-    const t = document.createElement('span');
-    t.id = 'status-text';
-    t.textContent = msg;
-    bar.appendChild(t);
+    if (loading) { const s = document.createElement('span'); s.className = 'spinner'; bar.appendChild(s); }
+    const t = document.createElement('span'); t.textContent = msg; bar.appendChild(t);
   }
 
-  function setNextRefreshLabel(timestamp) {
+  function setNextRefreshLabel(ts) {
     const el = document.getElementById('next-refresh');
     if (!el) return;
-    const next = new Date(timestamp + CACHE_TTL);
-    el.textContent = 'next auto-refresh at ' + next.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' on ' + next.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const next = new Date(ts + CACHE_TTL);
+    el.textContent = 'next at ' + next.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) + ' on ' + next.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
   }
 
-  function scheduleNextRefresh(timestamp) {
-    if (refreshTimer) clearTimeout(refreshTimer);
-    const delay = (timestamp + CACHE_TTL) - Date.now();
-    if (delay > 0) {
-      refreshTimer = setTimeout(() => loadData(true), delay);
-    } else {
-      loadData(true);
-    }
+  function scheduleNextRefresh(tab, ts) {
+    if (refreshTimers[tab]) clearTimeout(refreshTimers[tab]);
+    const delay = (ts + CACHE_TTL) - Date.now();
+    refreshTimers[tab] = delay > 0
+      ? setTimeout(() => { if (activeTab === tab) loadTabData(tab, true); }, delay)
+      : setTimeout(() => loadTabData(tab, true), 0);
   }
 
-  function renderTable(results) {
-    const tbody = document.getElementById('table-body');
+  function renderTable(results, tbodyId) {
+    const tbody = document.getElementById(tbodyId);
     tbody.innerHTML = '';
     for (const r of results) {
       const tr = document.createElement('tr');
-      // Provider cell
       const tdName = document.createElement('td');
       tdName.textContent = r.provider;
       tdName.style.setProperty('--brand', r.brand);
       tr.appendChild(tdName);
-
       if (r.error && r.items.length === 0) {
-        // Show error spanning remaining columns
-        const tdErr = document.createElement('td');
-        tdErr.colSpan = MAX_ITEMS;
-        tdErr.className = 'error-cell';
-        tdErr.textContent = 'Could not load: ' + r.error;
-        tr.appendChild(tdErr);
+        const td = document.createElement('td');
+        td.colSpan = MAX_ITEMS; td.className = 'error-cell';
+        td.textContent = 'Could not load: ' + r.error;
+        tr.appendChild(td);
       } else {
         for (let i = 0; i < MAX_ITEMS; i++) {
-          const td = document.createElement('td');
-          td.className = 'news-cell';
+          const td = document.createElement('td'); td.className = 'news-cell';
           const item = r.items[i];
           if (item) {
             const a = document.createElement('a');
-            a.href = item.link;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
+            a.href = item.link; a.target = '_blank'; a.rel = 'noopener noreferrer';
             a.textContent = truncate(item.title, 90);
-            const src = document.createElement('div');
-            src.className = 'source';
-            src.textContent = truncate(item.source, 40);
-            const dt = document.createElement('div');
-            dt.className = 'date';
-            dt.textContent = fmtDate(item.pubDate);
-            td.appendChild(a);
-            td.appendChild(src);
-            td.appendChild(dt);
+            const src = document.createElement('div'); src.className = 'source'; src.textContent = truncate(item.source, 40);
+            const dt  = document.createElement('div'); dt.className  = 'date';   dt.textContent  = fmtDate(item.pubDate);
+            td.appendChild(a); td.appendChild(src); td.appendChild(dt);
           } else {
             td.className += ' empty-cell';
             td.textContent = r.error ? '—' : 'No article';
@@ -455,60 +552,521 @@
     }
   }
 
-  async function loadData(forceRefresh = false) {
+  function switchTab(tab) {
+    if (tab === activeTab) return;
+    activeTab = tab;
+    document.getElementById('panel-providers').style.display = tab === 'providers' ? '' : 'none';
+    document.getElementById('panel-bill').style.display      = tab === 'bill'      ? '' : 'none';
+    document.getElementById('panel-radar').style.display     = tab === 'radar'     ? '' : 'none';
+    ['providers','bill','radar'].forEach(t =>
+      document.getElementById('tab-btn-' + t).classList.toggle('active', t === tab)
+    );
+    if (tab === 'radar') { renderPinTags(); loadRadarData(false); }
+    else loadTabData(tab, false);
+  }
+
+  async function loadTabData(tab, forceRefresh = false) {
+    const config = TABS[tab];
     const btn = document.getElementById('refresh-btn');
     const lastUpdatedEl = document.getElementById('last-updated');
     btn.disabled = true;
-
-    // Try cache first
     if (!forceRefresh) {
       try {
-        const raw = localStorage.getItem(CACHE_KEY);
+        const raw = localStorage.getItem(config.cacheKey);
         if (raw) {
           const cached = JSON.parse(raw);
-          const age = Date.now() - cached.timestamp;
-          if (age < CACHE_TTL) {
-            renderTable(cached.results);
-            const updatedAt = new Date(cached.timestamp);
-            lastUpdatedEl.textContent = 'Cached ' + updatedAt.toLocaleString('en-GB');
-            setStatus('Serving cached data (fetched ' + Math.round(age / 60000) + ' min ago).');
+          if (Date.now() - cached.timestamp < CACHE_TTL) {
+            renderTable(cached.results, config.tbodyId);
+            lastUpdatedEl.textContent = 'Cached ' + new Date(cached.timestamp).toLocaleString('en-GB');
+            setStatus('Cached data (' + Math.round((Date.now()-cached.timestamp)/60000) + ' min old).');
             setNextRefreshLabel(cached.timestamp);
-            scheduleNextRefresh(cached.timestamp);
-            btn.disabled = false;
-            return;
+            scheduleNextRefresh(tab, cached.timestamp);
+            btn.disabled = false; return;
           }
         }
-      } catch { /* ignore bad cache */ }
+      } catch {}
     }
-
-    // Fetch fresh
-    setStatus('Fetching latest news from Google News…', true);
+    setStatus('Fetching latest news…', true);
     lastUpdatedEl.textContent = 'Updating…';
-
-    // Stagger requests 300 ms apart to avoid rate-limiting on shared CORS proxies.
     const results = await Promise.all(
-      PROVIDERS.map((p, i) => new Promise(resolve =>
-        setTimeout(() => fetchProviderNews(p).then(resolve), i * 300)
+      config.items.map((row, i) => new Promise(resolve =>
+        setTimeout(() => fetchRowNews(row, config.applyFilter).then(resolve), i * 300)
       ))
     );
-
     const timestamp = Date.now();
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp, results }));
-    } catch { /* storage full – skip cache */ }
-
-    renderTable(results);
-    const updatedAt = new Date(timestamp);
-    lastUpdatedEl.textContent = 'Updated ' + updatedAt.toLocaleString('en-GB');
+    try { localStorage.setItem(config.cacheKey, JSON.stringify({ timestamp, results })); } catch {}
+    renderTable(results, config.tbodyId);
+    lastUpdatedEl.textContent = 'Updated ' + new Date(timestamp).toLocaleString('en-GB');
     const errors = results.filter(r => r.error).length;
-    setStatus(errors ? `Loaded with ${errors} provider error(s). Check console for details.` : 'All providers loaded successfully.');
+    setStatus(errors ? 'Loaded with ' + errors + ' error(s).' : 'All rows loaded.');
     setNextRefreshLabel(timestamp);
-    scheduleNextRefresh(timestamp);
+    scheduleNextRefresh(tab, timestamp);
     btn.disabled = false;
   }
 
-  // Kick off on page load
-  loadData(false);
+  const RADAR_CACHE_KEY = 'radar_v5';
+
+  const TRIGGER_DEFS = {
+    ma_event:            { label: 'M&A / Transaction',     weight: 28, color: '#0891b2' },
+    scheme_review:       { label: 'Pension Review',         weight: 30, color: '#ea580c' },
+    pension_consolidation:{ label: 'Scheme Consolidation',  weight: 35, color: '#b45309' },
+    senior_appt:         { label: 'Senior Appointment',     weight: 25, color: '#7c3aed' },
+    cost_saving:         { label: 'Cost Saving',            weight: 22, color: '#dc2626' },
+    public_tender:       { label: 'Public Tender',          weight: 35, color: '#059669' },
+  };
+
+  const RADAR_UNIVERSE = [
+    // ── FTSE 100 ──────────────────────────────────────────────────────────────
+    { name: 'Tesco',                   sector: 'FTSE 100 · Retail',        query: 'Tesco UK restructuring jobs pension employees',         query2: 'Tesco pension scheme annual report chair statement 2026' },
+    { name: "Sainsbury's",             sector: 'FTSE 100 · Retail',        query: "Sainsbury's UK restructuring jobs pension",             query2: "Sainsbury's pension scheme annual chair statement 2026" },
+    { name: 'Marks & Spencer',         sector: 'FTSE 100 · Retail',        query: 'Marks Spencer UK restructuring jobs pension',           query2: 'Marks Spencer pension scheme consolidation master trust 2026' },
+    { name: 'Next',                    sector: 'FTSE 100 · Retail',        query: 'Next plc UK restructuring jobs pension' },
+    { name: 'Kingfisher',              sector: 'FTSE 100 · Retail',        query: 'Kingfisher B&Q UK restructuring jobs pension' },
+    { name: 'JD Sports',               sector: 'FTSE 100 · Retail',        query: 'JD Sports UK restructuring pension employees' },
+    { name: 'Primark / ABF',           sector: 'FTSE 100 · Retail',        query: 'Primark Associated British Foods UK pension jobs' },
+    { name: 'Burberry',                sector: 'FTSE 100 · Luxury',        query: 'Burberry UK restructuring jobs pension employees' },
+    { name: 'B&M Value Retail',        sector: 'FTSE 100 · Retail',        query: 'B&M European Value UK pension jobs restructuring' },
+    { name: 'National Grid',           sector: 'FTSE 100 · Utilities',     query: 'National Grid UK pension jobs restructuring acquisition' },
+    { name: 'SSE',                     sector: 'FTSE 100 · Utilities',     query: 'SSE plc UK pension jobs restructuring acquisition' },
+    { name: 'Centrica',                sector: 'FTSE 100 · Utilities',     query: 'Centrica British Gas UK pension jobs restructuring' },
+    { name: 'United Utilities',        sector: 'FTSE 100 · Utilities',     query: 'United Utilities UK pension jobs restructuring' },
+    { name: 'Severn Trent',            sector: 'FTSE 100 · Utilities',     query: 'Severn Trent UK pension jobs restructuring' },
+    { name: 'BT Group',                sector: 'FTSE 100 · Telecoms',      query: 'BT Group UK pension restructuring jobs acquisition',     query2: 'BT pension scheme DC consolidation annual report 2026' },
+    { name: 'Vodafone UK',             sector: 'FTSE 100 · Telecoms',      query: 'Vodafone Three merger UK pension restructuring jobs',     query2: 'Vodafone UK pension scheme review consolidation 2026' },
+    { name: 'BAE Systems',             sector: 'FTSE 100 · Defence',       query: 'BAE Systems UK pension jobs acquisition restructuring' },
+    { name: 'Rolls-Royce',             sector: 'FTSE 100 · Engineering',   query: 'Rolls-Royce UK pension restructuring jobs acquisition' },
+    { name: 'GSK',                     sector: 'FTSE 100 · Pharma',        query: 'GSK GlaxoSmithKline UK pension restructuring jobs' },
+    { name: 'AstraZeneca',             sector: 'FTSE 100 · Pharma',        query: 'AstraZeneca UK pension restructuring jobs acquisition' },
+    { name: 'Haleon',                  sector: 'FTSE 100 · Healthcare',    query: 'Haleon UK pension restructuring jobs acquisition' },
+    { name: 'Smith+Nephew',            sector: 'FTSE 100 · MedTech',       query: 'Smith Nephew UK pension restructuring jobs acquisition' },
+    { name: 'ConvaTec',                sector: 'FTSE 100 · MedTech',       query: 'ConvaTec UK pension restructuring jobs' },
+    { name: 'Hikma Pharma',            sector: 'FTSE 100 · Pharma',        query: 'Hikma Pharmaceuticals UK pension jobs restructuring' },
+    { name: 'Unilever',                sector: 'FTSE 100 · Consumer',      query: 'Unilever UK pension restructuring jobs acquisition' },
+    { name: 'Reckitt',                 sector: 'FTSE 100 · Consumer',      query: 'Reckitt UK pension restructuring jobs acquisition' },
+    { name: 'Diageo',                  sector: 'FTSE 100 · Consumer',      query: 'Diageo UK pension restructuring jobs acquisition' },
+    { name: 'Imperial Brands',         sector: 'FTSE 100 · Consumer',      query: 'Imperial Brands UK pension jobs restructuring' },
+    { name: 'British American Tobacco',sector: 'FTSE 100 · Consumer',      query: 'BAT British American Tobacco UK pension jobs restructuring' },
+    { name: 'Compass Group',           sector: 'FTSE 100 · Hospitality',   query: 'Compass Group UK pension jobs restructuring acquisition' },
+    { name: 'Whitbread',               sector: 'FTSE 100 · Hospitality',   query: 'Whitbread Premier Inn UK pension jobs restructuring' },
+    { name: 'InterContinental Hotels', sector: 'FTSE 100 · Hospitality',   query: 'IHG InterContinental Hotels UK pension jobs restructuring' },
+    { name: 'Shell UK',                sector: 'FTSE 100 · Energy',        query: 'Shell UK pension restructuring jobs acquisition' },
+    { name: 'BP UK',                   sector: 'FTSE 100 · Energy',        query: 'BP UK pension restructuring jobs acquisition' },
+    { name: 'Anglo American',          sector: 'FTSE 100 · Mining',        query: 'Anglo American UK pension jobs restructuring acquisition' },
+    { name: 'Rio Tinto UK',            sector: 'FTSE 100 · Mining',        query: 'Rio Tinto UK pension jobs restructuring acquisition' },
+    { name: 'HSBC UK',                 sector: 'FTSE 100 · Banking',       query: 'HSBC UK employer pension jobs restructuring acquisition' },
+    { name: 'Barclays',                sector: 'FTSE 100 · Banking',       query: 'Barclays UK employer pension jobs restructuring acquisition' },
+    { name: 'NatWest Group',           sector: 'FTSE 100 · Banking',       query: 'NatWest UK employer pension jobs restructuring acquisition' },
+    { name: 'Lloyds Banking Group',    sector: 'FTSE 100 · Banking',       query: 'Lloyds Bank UK employer pension jobs restructuring' },
+    { name: 'Standard Chartered',      sector: 'FTSE 100 · Banking',       query: 'Standard Chartered UK employer pension jobs restructuring' },
+    { name: 'Admiral Group',           sector: 'FTSE 100 · Insurance',     query: 'Admiral Group UK pension jobs restructuring acquisition' },
+    { name: 'Phoenix Group',           sector: 'FTSE 100 · Insurance',     query: 'Phoenix Group UK employer pension jobs restructuring' },
+    { name: 'M&G',                     sector: 'FTSE 100 · Asset Mgmt',    query: 'M&G UK employer pension jobs restructuring acquisition' },
+    { name: 'RELX',                    sector: 'FTSE 100 · Information',   query: 'RELX UK pension jobs restructuring acquisition' },
+    { name: 'Informa',                 sector: 'FTSE 100 · Media',         query: 'Informa UK pension jobs restructuring acquisition' },
+    { name: 'WPP',                     sector: 'FTSE 100 · Media',         query: 'WPP UK pension jobs restructuring acquisition' },
+    { name: 'Pearson',                 sector: 'FTSE 100 · Education',     query: 'Pearson UK pension jobs restructuring acquisition' },
+    { name: 'Sage Group',              sector: 'FTSE 100 · Technology',    query: 'Sage Group UK pension jobs restructuring acquisition' },
+    { name: 'Entain',                  sector: 'FTSE 100 · Gaming',        query: 'Entain UK pension jobs restructuring acquisition' },
+    { name: 'Ocado',                   sector: 'FTSE 100 · Logistics',     query: 'Ocado UK pension jobs restructuring acquisition' },
+    { name: 'Barratt Redrow',          sector: 'FTSE 100 · Construction',  query: 'Barratt Redrow UK pension jobs restructuring' },
+    { name: 'Taylor Wimpey',           sector: 'FTSE 100 · Construction',  query: 'Taylor Wimpey UK pension jobs restructuring' },
+    { name: 'Persimmon',               sector: 'FTSE 100 · Construction',  query: 'Persimmon UK pension jobs restructuring' },
+    { name: 'Berkeley Group',          sector: 'FTSE 100 · Construction',  query: 'Berkeley Group UK pension jobs restructuring' },
+    { name: 'Smiths Group',            sector: 'FTSE 100 · Engineering',   query: 'Smiths Group UK pension jobs restructuring acquisition' },
+    { name: 'Weir Group',              sector: 'FTSE 100 · Engineering',   query: 'Weir Group UK pension jobs restructuring acquisition' },
+    { name: 'Spirax Sarco',            sector: 'FTSE 100 · Engineering',   query: 'Spirax Sarco UK pension jobs restructuring' },
+    { name: 'Melrose / GKN',           sector: 'FTSE 100 · Manufacturing', query: 'Melrose GKN Aerospace UK pension jobs restructuring' },
+    { name: 'Rentokil Initial',        sector: 'FTSE 100 · Services',      query: 'Rentokil UK pension jobs restructuring acquisition' },
+    { name: 'Bunzl',                   sector: 'FTSE 100 · Distribution',  query: 'Bunzl UK pension jobs restructuring acquisition' },
+    { name: 'Intertek',                sector: 'FTSE 100 · Testing',       query: 'Intertek UK pension jobs restructuring acquisition' },
+    { name: 'Ferguson',                sector: 'FTSE 100 · Distribution',  query: 'Ferguson plc UK pension jobs restructuring acquisition' },
+    // ── FTSE 250 & AIM ────────────────────────────────────────────────────────
+    { name: 'Babcock International',   sector: 'FTSE 250 · Defence',       query: 'Babcock International UK pension jobs restructuring' },
+    { name: 'QinetiQ',                 sector: 'FTSE 250 · Defence',       query: 'QinetiQ UK pension jobs restructuring acquisition' },
+    { name: 'Serco',                   sector: 'FTSE 250 · Services',      query: 'Serco UK pension jobs restructuring acquisition' },
+    { name: 'Capita',                  sector: 'FTSE 250 · Services',      query: 'Capita UK pension jobs restructuring acquisition',       query2: 'Capita pension scheme wind-up consolidation master trust 2026' },
+    { name: 'Mitie',                   sector: 'FTSE 250 · Services',      query: 'Mitie UK pension jobs restructuring acquisition' },
+    { name: 'G4S / Allied Universal',  sector: 'FTSE 250 · Security',      query: 'G4S Allied Universal UK pension jobs restructuring' },
+    { name: 'Vistry Group',            sector: 'FTSE 250 · Construction',  query: 'Vistry Group UK pension jobs restructuring acquisition' },
+    { name: 'Kier Group',              sector: 'FTSE 250 · Construction',  query: 'Kier Group UK pension jobs restructuring acquisition' },
+    { name: 'Morgan Sindall',          sector: 'FTSE 250 · Construction',  query: 'Morgan Sindall UK pension jobs restructuring' },
+    { name: 'Galliford Try',           sector: 'FTSE 250 · Construction',  query: 'Galliford Try UK pension jobs restructuring' },
+    { name: 'FirstGroup',              sector: 'FTSE 250 · Transport',     query: 'FirstGroup UK pension jobs restructuring acquisition' },
+    { name: 'Mobico / National Express', sector: 'FTSE 250 · Transport',   query: 'Mobico National Express UK pension jobs restructuring' },
+    { name: 'easyJet',                 sector: 'FTSE 250 · Aviation',      query: 'easyJet UK pension jobs restructuring acquisition' },
+    { name: 'Direct Line Group',       sector: 'FTSE 250 · Insurance',     query: 'Direct Line UK pension jobs restructuring acquisition' },
+    { name: 'St James\'s Place',       sector: 'FTSE 250 · Wealth Mgmt',   query: "St James's Place UK pension employer jobs restructuring" },
+    { name: 'Drax Group',              sector: 'FTSE 250 · Energy',        query: 'Drax Group UK pension jobs restructuring acquisition' },
+    { name: 'Harbour Energy',          sector: 'FTSE 250 · Energy',        query: 'Harbour Energy UK pension jobs restructuring acquisition' },
+    { name: 'Greggs',                  sector: 'FTSE 250 · Food Retail',   query: 'Greggs UK pension jobs restructuring acquisition' },
+    { name: 'Mitchells & Butlers',     sector: 'FTSE 250 · Hospitality',   query: 'Mitchells Butlers UK pension jobs restructuring acquisition' },
+    { name: 'Flutter Entertainment',   sector: 'FTSE 250 · Gaming',        query: 'Flutter Entertainment UK pension jobs restructuring' },
+    { name: 'Computacenter',           sector: 'FTSE 250 · IT Services',   query: 'Computacenter UK pension jobs restructuring acquisition' },
+    { name: 'Halfords',                sector: 'FTSE 250 · Retail',        query: 'Halfords UK pension jobs restructuring acquisition' },
+    { name: 'Pets at Home',            sector: 'FTSE 250 · Retail',        query: 'Pets at Home UK pension jobs restructuring acquisition' },
+    { name: 'Dunelm',                  sector: 'FTSE 250 · Retail',        query: 'Dunelm UK pension jobs restructuring acquisition' },
+    { name: 'Currys',                  sector: 'FTSE 250 · Retail',        query: 'Currys UK pension jobs restructuring acquisition' },
+    { name: 'WH Smith',                sector: 'FTSE 250 · Retail',        query: 'WH Smith UK pension jobs restructuring acquisition' },
+    { name: 'Spire Healthcare',        sector: 'FTSE 250 · Healthcare',    query: 'Spire Healthcare UK pension jobs restructuring acquisition' },
+    { name: 'IMI',                     sector: 'FTSE 250 · Engineering',   query: 'IMI plc UK pension jobs restructuring acquisition' },
+    { name: 'Biffa',                   sector: 'FTSE 250 · Waste Mgmt',    query: 'Biffa UK pension jobs restructuring acquisition' },
+    // ── Large private / unlisted ──────────────────────────────────────────────
+    { name: 'John Lewis Partnership',  sector: 'Private · Retail',         query: 'John Lewis Partnership UK pension jobs restructuring',   query2: 'John Lewis pension scheme chair annual statement 2026' },
+    { name: 'Morrisons',               sector: 'Private · Retail',         query: 'Morrisons UK pension jobs restructuring acquisition' },
+    { name: 'Asda',                    sector: 'Private · Retail',         query: 'Asda UK pension jobs restructuring acquisition' },
+    { name: 'Boots UK',                sector: 'Private · Pharmacy',       query: 'Boots UK pension jobs restructuring acquisition' },
+    { name: 'Co-op',                   sector: 'Private · Retail',         query: 'Co-op UK pension jobs restructuring acquisition' },
+    { name: 'Ikea UK',                 sector: 'Private · Retail',         query: 'Ikea UK pension jobs restructuring' },
+    { name: 'Lidl UK',                 sector: 'Private · Retail',         query: 'Lidl UK pension jobs restructuring expansion' },
+    { name: 'Aldi UK',                 sector: 'Private · Retail',         query: 'Aldi UK pension jobs restructuring expansion' },
+    { name: 'Virgin Media O2',         sector: 'Private · Telecoms',       query: 'Virgin Media O2 UK pension jobs restructuring acquisition', query2: 'Virgin Media O2 pension scheme review consolidation 2026' },
+    { name: 'Sky UK',                  sector: 'Private · Media',          query: 'Sky UK Comcast pension jobs restructuring acquisition' },
+    { name: 'ITV',                     sector: 'Listed · Media',           query: 'ITV UK pension jobs restructuring acquisition' },
+    { name: 'Royal Mail / IDS',        sector: 'Listed · Logistics',       query: 'Royal Mail IDS EP Group UK pension restructuring acquisition', query2: 'Royal Mail pension scheme DC consolidation master trust 2026' },
+    { name: 'DHL UK',                  sector: 'Private · Logistics',      query: 'DHL UK pension jobs restructuring acquisition' },
+    { name: 'Amazon UK',               sector: 'Private · Tech',           query: 'Amazon UK workers pension jobs redundancy restructuring' },
+    { name: 'IBM UK',                  sector: 'Private · Tech',           query: 'IBM UK pension jobs restructuring acquisition' },
+    { name: 'DXC Technology',          sector: 'Private · IT Services',    query: 'DXC Technology UK pension jobs restructuring acquisition' },
+    { name: 'Fujitsu UK',              sector: 'Private · IT Services',    query: 'Fujitsu UK pension jobs restructuring acquisition' },
+    { name: 'Capgemini UK',            sector: 'Private · Consulting',     query: 'Capgemini UK pension jobs restructuring acquisition' },
+    { name: 'Accenture UK',            sector: 'Private · Consulting',     query: 'Accenture UK pension jobs restructuring acquisition' },
+    { name: 'Deloitte UK',             sector: 'Private · Prof Services',  query: 'Deloitte UK pension jobs restructuring acquisition partner' },
+    { name: 'KPMG UK',                 sector: 'Private · Prof Services',  query: 'KPMG UK pension jobs restructuring acquisition partner' },
+    { name: 'EY UK',                   sector: 'Private · Prof Services',  query: 'EY UK Ernst Young pension jobs restructuring acquisition' },
+    { name: 'PwC UK',                  sector: 'Private · Prof Services',  query: 'PwC PricewaterhouseCoopers UK pension jobs restructuring' },
+    { name: 'Santander UK',            sector: 'Private · Banking',        query: 'Santander UK employer pension jobs restructuring acquisition' },
+    { name: 'Nationwide',              sector: 'Private · Banking',        query: 'Nationwide Building Society UK pension employer jobs restructuring' },
+    { name: 'Hargreaves Lansdown',     sector: 'Private · Wealth',         query: 'Hargreaves Lansdown UK employer pension jobs restructuring' },
+    { name: 'Jaguar Land Rover / JLR', sector: 'Private · Automotive',     query: 'Jaguar Land Rover JLR UK pension jobs restructuring acquisition' },
+    { name: 'INEOS Group',             sector: 'Private · Chemicals',      query: 'INEOS UK pension jobs restructuring acquisition' },
+    { name: 'Network Rail',            sector: 'Public · Infrastructure',  query: 'Network Rail UK pension jobs restructuring acquisition' },
+    { name: 'Heathrow Airport',        sector: 'Private · Infrastructure', query: 'Heathrow Airport UK pension jobs restructuring acquisition' },
+    { name: 'Thames Water',            sector: 'Private · Utilities',      query: 'Thames Water UK pension jobs restructuring administration', query2: 'Thames Water pension scheme chair statement wind-up 2026' },
+    { name: 'Anglian Water',           sector: 'Private · Utilities',      query: 'Anglian Water UK pension jobs restructuring acquisition' },
+    { name: 'Bupa UK',                 sector: 'Private · Healthcare',     query: 'Bupa UK pension jobs restructuring acquisition' },
+    { name: 'NHS (national)',          sector: 'Public · Healthcare',      query: 'NHS England DC pension scheme workplace review tender',  query2: 'NHS DC workplace pension scheme master trust consolidation 2026' },
+    { name: 'Local authorities UK',    sector: 'Public · Government',      query: 'UK local council DC pension workplace scheme review',    query2: 'local authority DC pension scheme chair statement consolidation 2026' },
+    { name: 'Universities UK',         sector: 'Public · Education',       query: 'UK university DC pension workplace scheme review',       query2: 'university pension scheme USS DC consolidation master trust 2026' },
+    // ── PE-backed / recent M&A ────────────────────────────────────────────────
+    { name: 'Kyndryl UK',              sector: 'Private · IT Services',    query: 'Kyndryl UK pension jobs restructuring acquisition',          query2: 'Kyndryl UK pension scheme annual report chair statement' },
+    { name: 'DS Smith / Intl Paper',   sector: 'Private · Packaging',      query: 'DS Smith International Paper UK pension jobs restructuring',  query2: 'DS Smith pension scheme consolidation master trust' },
+    { name: 'Wincanton / GXO',         sector: 'Private · Logistics',      query: 'Wincanton GXO UK pension jobs restructuring acquisition',     query2: 'Wincanton pension scheme transfer consolidation 2026' },
+    { name: 'Direct Line / Aviva',     sector: 'Listed · Insurance',       query: 'Direct Line Aviva acquisition UK pension jobs restructuring', query2: 'Direct Line pension scheme consolidation Aviva 2026' },
+    { name: 'Frasers Group',           sector: 'Listed · Retail',          query: 'Frasers Group Sports Direct UK pension jobs restructuring acquisition' },
+    { name: 'AA plc',                  sector: 'Private · Services',       query: 'AA plc UK roadside pension jobs restructuring acquisition' },
+    { name: 'RAC UK',                  sector: 'Private · Services',       query: 'RAC UK Carlyle pension jobs restructuring acquisition' },
+    { name: 'David Lloyd Leisure',     sector: 'Private · Leisure',        query: 'David Lloyd Leisure UK pension jobs restructuring acquisition' },
+    { name: 'Merlin Entertainments',   sector: 'Private · Leisure',        query: 'Merlin Entertainments Legoland UK pension jobs restructuring acquisition' },
+    { name: 'Center Parcs UK',         sector: 'Private · Leisure',        query: 'Center Parcs UK pension jobs restructuring acquisition' },
+    { name: 'PureGym',                 sector: 'Private · Leisure',        query: 'PureGym UK pension jobs restructuring acquisition' },
+    { name: 'Evoke / William Hill',    sector: 'Listed · Gaming',          query: 'Evoke William Hill 888 UK pension jobs restructuring acquisition' },
+    { name: 'THG plc',                 sector: 'Listed · Ecommerce',       query: 'THG Hut Group UK pension jobs restructuring acquisition' },
+    { name: 'Darktrace',               sector: 'Private · Cybersecurity',  query: 'Darktrace Thoma Bravo UK pension jobs restructuring acquisition' },
+    { name: 'AXA UK',                  sector: 'Private · Insurance',      query: 'AXA UK pension employer jobs restructuring acquisition',      query2: 'AXA UK pension scheme annual report consolidation 2026' },
+    { name: 'LV= / Allianz UK',        sector: 'Private · Insurance',      query: 'LV Liverpool Victoria Allianz UK pension jobs restructuring acquisition' },
+    { name: 'Octopus Energy',          sector: 'Private · Energy',         query: 'Octopus Energy UK pension jobs expansion acquisition' },
+    { name: 'Pret a Manger',           sector: 'Private · Hospitality',    query: 'Pret a Manger UK pension jobs restructuring acquisition' },
+    { name: 'Vue Entertainment',       sector: 'Private · Leisure',        query: 'Vue Entertainment UK pension jobs restructuring acquisition' },
+    { name: 'Cineworld UK',            sector: 'Private · Leisure',        query: 'Cineworld UK pension jobs restructuring administration' },
+    { name: 'Southern Water',          sector: 'Private · Utilities',      query: 'Southern Water UK pension jobs restructuring administration',  query2: 'Southern Water pension scheme chair annual statement 2026' },
+    { name: 'Yorkshire Water',         sector: 'Private · Utilities',      query: 'Yorkshire Water UK pension jobs restructuring acquisition' },
+    { name: 'Pennon Group',            sector: 'FTSE 250 · Utilities',     query: 'Pennon South West Water UK pension jobs restructuring acquisition' },
+    { name: 'Matalan',                 sector: 'Private · Retail',         query: 'Matalan UK pension jobs restructuring acquisition' },
+    // ── Global tech (large UK DC schemes) ────────────────────────────────────
+    { name: 'Google UK',               sector: 'Private · Tech',           query: 'Google Alphabet UK pension employer jobs restructuring redundancy' },
+    { name: 'Microsoft UK',            sector: 'Private · Tech',           query: 'Microsoft UK pension employer jobs restructuring redundancy' },
+    { name: 'Meta UK',                 sector: 'Private · Tech',           query: 'Meta Facebook UK pension employer jobs restructuring redundancy' },
+    { name: 'Apple UK',                sector: 'Private · Tech',           query: 'Apple UK pension employer jobs restructuring redundancy' },
+    { name: 'Salesforce UK',           sector: 'Private · Tech',           query: 'Salesforce UK pension employer jobs restructuring redundancy' },
+    // ── Additional FTSE 250 / large employers ────────────────────────────────
+    { name: 'Travis Perkins',          sector: 'FTSE 250 · Building Mtrls',query: 'Travis Perkins UK pension jobs restructuring acquisition',     query2: 'Travis Perkins pension scheme annual report consolidation' },
+    { name: 'Wickes Group',            sector: 'FTSE 250 · Retail',        query: 'Wickes Group UK pension jobs restructuring acquisition' },
+    { name: 'Bellway',                 sector: 'FTSE 250 · Construction',  query: 'Bellway UK pension jobs restructuring acquisition' },
+    { name: 'Crest Nicholson',         sector: 'FTSE 250 · Construction',  query: 'Crest Nicholson UK pension jobs restructuring acquisition' },
+    { name: 'Specsavers',              sector: 'Private · Retail',         query: 'Specsavers UK pension employer jobs restructuring acquisition' },
+    { name: 'Timpson Group',           sector: 'Private · Retail',         query: 'Timpson Group UK pension employer jobs restructuring acquisition' },
+    { name: 'Domestic & General',      sector: 'Private · Services',       query: 'Domestic General UK pension jobs restructuring acquisition' },
+  ];
+
+  function classifyTriggers(title) {
+    const t = title.toLowerCase();
+    const found = [];
+    if (/acqui|takeover|merger|buy.?out|bought by|divest|sell.?off|spin.?off|stake in|bid for|private equity|buyout|pe.backed|deal agreed|agreed (deal|merger|acquisition)|explores? (sale|deal|merger)|considers? (sale|merger|bid)|rumou?r.{0,10}(deal|bid|takeover|merger)/i.test(t))
+      found.push('ma_event');
+    if (/pension.*(review|consult|overhaul|tender|new provider|switch|change|consolidat)|switch.*pension|change.*pension provider|workplace pension.*(change|review)|auto.enrolment.*(review|overhaul)|dc scheme|pension scheme.*(review|change|overhaul)/i.test(t))
+      found.push('scheme_review');
+    if (/chair.{0,25}(statement|report)|annual.{0,20}pension.{0,20}(report|statement)|pension.{0,20}annual.{0,20}(report|statement)|wind.?ing.?up|wind.?up notice|bulk transfer.*pension|pension.*bulk transfer|transfer.*master trust|consolidat.{0,20}(master trust|pension scheme)|pension scheme.*(merger|wind|close|terminat)|winding up.*pension|scheme consolidat/i.test(t))
+      found.push('pension_consolidation');
+    if (/(appoint|named|hired|joins|steps? down|resign|depart|retir|leav|sack|exit).{0,50}(chief financial|chief people|chief human|finance director|hr director|people director|cfo\b|cpo\b|chro\b|chief exec|ceo\b)|(cfo\b|cpo\b|chro\b|ceo\b|chief financial|chief people|chief human|chief exec).{0,50}(appoint|named|hired|joins|resign|depart|steps? down|exit|sack)/i.test(t))
+      found.push('senior_appt');
+    if (/cost.sav|cost.reduc|cost.cut|lay.?off|redundanc|job.?cut|headcount|strategic review|efficiency (programme|review|drive|saving)|profit warning|restructur|operational review|workforce reduc|job losses|hundreds? of jobs|thousands? of jobs/i.test(t))
+      found.push('cost_saving');
+    if (/public.*tender|procurement.*tender|contract.*award|competitive.*tender|invitation to tender|itt\b|framework.*pension|public.*sector.*pension.*contract/i.test(t))
+      found.push('public_tender');
+    return found;
+  }
+
+  function recencyScore(pubDate) {
+    if (!pubDate) return 0.5;
+    const ageDays = (Date.now() - new Date(pubDate).getTime()) / 86400000;
+    if (ageDays < 7)  return 1.0;
+    if (ageDays < 30) return 0.75;
+    if (ageDays < 90) return 0.4;
+    return 0.15;
+  }
+
+  function scoreEmployer(result) {
+    const evidenceMap = new Map();
+    let rawScore = 0;
+    const SKIP = new Set(['the','and','for','uk','plc','ltd','group','llp','corp','inc','co','of','by','at']);
+    const nameTokens = (result.provider || '')
+      .toLowerCase()
+      .split(/[\s/&+,\-().]+/)
+      .filter(t => t.length >= 3 && !SKIP.has(t));
+    for (const article of (result.items || [])) {
+      const titleLower = (article.title || '').toLowerCase();
+      const relevant = !nameTokens.length || nameTokens.some(t => titleLower.includes(t));
+      const relevanceMult = relevant ? 1.0 : 0.15;
+      const triggers = classifyTriggers(article.title);
+      const decay = recencyScore(article.pubDate);
+      for (const type of triggers) {
+        rawScore += TRIGGER_DEFS[type].weight * decay * relevanceMult;
+        if (relevant) {
+          const prev = evidenceMap.get(type);
+          if (!prev || decay > prev._decay) evidenceMap.set(type, { ...article, _decay: decay });
+        }
+      }
+      if (triggers.length === 0) rawScore += 2 * decay * relevanceMult;
+    }
+    return {
+      score: Math.min(100, Math.round(rawScore)),
+      triggers: [...evidenceMap.entries()].map(([type, art]) => ({ type, article: art })),
+      totalArticles: (result.items || []).length,
+      articles: result.items || [],
+    };
+  }
+
+  const PINS_KEY        = 'pinned_employers_v2';
+  const ASSESS_CACHE_KEY = 'ai_assessments_v1';
+
+  function getPins() { try { return JSON.parse(localStorage.getItem(PINS_KEY) || '[]'); } catch { return []; } }
+  function savePins(pins) { try { localStorage.setItem(PINS_KEY, JSON.stringify(pins)); } catch {} }
+  function buildPinQuery(name) { return name + ' UK pension jobs restructuring acquisition'; }
+
+  async function pinFromSearch() {
+    const input = document.getElementById('pin-input');
+    const name = input.value.trim();
+    if (!name) return;
+    const pins = getPins();
+    if (!pins.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+      pins.unshift({ name, query: buildPinQuery(name) });
+      savePins(pins);
+    }
+    input.value = '';
+    renderPinTags();
+    await loadRadarData(true);
+  }
+
+  function removePin(name) { savePins(getPins().filter(p => p.name !== name)); renderPinTags(); loadRadarData(true); }
+
+  function renderPinTags() {
+    const container = document.getElementById('pin-tags');
+    container.innerHTML = '';
+    getPins().forEach(p => {
+      const tag = document.createElement('div'); tag.className = 'pin-tag';
+      tag.textContent = '📌 ' + p.name + ' ';
+      const btn = document.createElement('button');
+      btn.title = 'Unpin'; btn.textContent = '✕';
+      btn.onclick = () => removePin(p.name);
+      tag.appendChild(btn);
+      container.appendChild(tag);
+    });
+  }
+
+  function getCachedAssessment(employer) {
+    try {
+      const cache = JSON.parse(localStorage.getItem(ASSESS_CACHE_KEY) || '{}');
+      const entry = cache[employer];
+      if (entry && Date.now() - entry.ts < ASSESS_CACHE_TTL) return entry;
+    } catch {} return null;
+  }
+
+  function setCachedAssessment(employer, analysis) {
+    try {
+      const cache = JSON.parse(localStorage.getItem(ASSESS_CACHE_KEY) || '{}');
+      cache[employer] = { analysis, ts: Date.now() };
+      localStorage.setItem(ASSESS_CACHE_KEY, JSON.stringify(cache));
+    } catch {}
+  }
+
+  async function assessWithAI(employer, sector, articles, btn) {
+    const cached = getCachedAssessment(employer);
+    if (cached) { showAssessmentModal(employer, cached.analysis, new Date(cached.ts)); return; }
+    const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = '⏳';
+    try {
+      const resp = await fetch(WORKER_URL + '/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employer, sector, articles: (articles||[]).slice(0,8) }),
+        signal: AbortSignal.timeout(30000),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.error) throw new Error(data.error || 'Worker HTTP ' + resp.status);
+      setCachedAssessment(employer, data.analysis);
+      showAssessmentModal(employer, data.analysis, new Date());
+    } catch (err) {
+      alert('AI assessment failed: ' + err.message);
+    } finally { btn.disabled = false; btn.textContent = orig; }
+  }
+
+  function showAssessmentModal(employer, text, cachedAt) {
+    const ll     = (text.match(/LIKELIHOOD:\s*(HIGH|MEDIUM|LOW|UNCLEAR)/i)||[])[1]?.toUpperCase()||'UNCLEAR';
+    const reason = (text.match(/REASON:\s*([\s\S]*?)(?=WATCH FOR:|$)/i)||[])[1]?.trim()||text;
+    const watch  = (text.match(/WATCH FOR:\s*([\s\S]*?)$/i)||[])[1]?.trim()||'';
+    const colors = { HIGH:'#dc2626', MEDIUM:'#d97706', LOW:'#16a34a', UNCLEAR:'#64748b' };
+    document.getElementById('modal-employer').textContent = employer;
+    const llEl = document.getElementById('modal-likelihood');
+    llEl.textContent = ll; llEl.style.background = colors[ll]||'#64748b';
+    document.getElementById('modal-reason').textContent = reason;
+    document.getElementById('modal-watch').textContent  = watch;
+    const cacheEl = document.getElementById('modal-cache-note');
+    if (cachedAt) {
+      cacheEl.innerHTML = 'Assessment from ' + cachedAt.toLocaleString('en-GB') + '. '
+        + '<span class="modal-refresh-link" onclick="clearAndReassess(' + JSON.stringify(employer) + ')">Get fresh assessment</span>';
+    }
+    document.getElementById('ai-modal').style.display = 'flex';
+  }
+
+  function closeModal() { document.getElementById('ai-modal').style.display = 'none'; }
+
+  function clearAndReassess(employer) {
+    try {
+      const cache = JSON.parse(localStorage.getItem(ASSESS_CACHE_KEY)||'{}');
+      delete cache[employer]; localStorage.setItem(ASSESS_CACHE_KEY, JSON.stringify(cache));
+    } catch {}
+    closeModal();
+    document.querySelectorAll('.assess-btn').forEach(btn => { if (btn.dataset.employer === employer) btn.click(); });
+  }
+
+  async function loadRadarData(forceRefresh = false) {
+    const btn = document.getElementById('refresh-btn');
+    const lastUpdatedEl = document.getElementById('last-updated');
+    btn.disabled = true;
+    if (!forceRefresh) {
+      try {
+        const raw = localStorage.getItem(RADAR_CACHE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          if (Date.now() - cached.timestamp < RADAR_CACHE_TTL) {
+            renderRadar(cached.employers, cached.pinned || []);
+            lastUpdatedEl.textContent = 'Cached ' + new Date(cached.timestamp).toLocaleString('en-GB');
+            setStatus('Cached scan (' + Math.round((Date.now()-cached.timestamp)/60000) + ' min old).');
+            btn.disabled = false; return;
+          }
+        }
+      } catch {}
+    }
+    const total = RADAR_UNIVERSE.length;
+    let done = 0;
+    lastUpdatedEl.textContent = 'Scanning…';
+    const results = await Promise.all(
+      RADAR_UNIVERSE.map((co, i) => new Promise(resolve =>
+        setTimeout(async () => {
+          const result = await fetchRowNews({ name: co.name, queries: [co.query, co.query2].filter(Boolean), brand: '#2563eb' }, false);
+          done++;
+          if (activeTab === 'radar') setStatus('Scanning employers… ' + done + '/' + total, true);
+          resolve({ co, result });
+        }, i * 150)
+      ))
+    );
+    const universeNames = new Set(RADAR_UNIVERSE.map(co => co.name.toLowerCase()));
+    const ranked = results
+      .map(({ co, result }) => {
+        const { score, triggers, totalArticles, articles } = scoreEmployer(result);
+        return { ...co, score, triggers, totalArticles, articles, error: result.error };
+      })
+      .filter(e => e.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 50);
+    const pins = getPins();
+    const customPins = pins.filter(p => !universeNames.has(p.name.toLowerCase()));
+    const pinnedResults = await Promise.all(
+      customPins.map(p => fetchRowNews({ name: p.name, query: p.query, brand: '#2563eb' }, false))
+    );
+    const pinnedEmployers = pinnedResults.map((result, i) => {
+      const { score, triggers, totalArticles, articles } = scoreEmployer(result);
+      return { name: customPins[i].name, sector: 'Pinned', score, triggers, totalArticles, articles, error: result.error };
+    });
+    const pinnedNames = new Set(pins.map(p => p.name.toLowerCase()));
+    ranked.forEach(e => { if (pinnedNames.has(e.name.toLowerCase())) e.pinned = true; });
+    const timestamp = Date.now();
+    try { localStorage.setItem(RADAR_CACHE_KEY, JSON.stringify({ timestamp, employers: ranked, pinned: pinnedEmployers })); } catch {}
+    renderRadar(ranked, pinnedEmployers);
+    lastUpdatedEl.textContent = 'Updated ' + new Date(timestamp).toLocaleString('en-GB');
+    setStatus('Scan complete — ' + ranked.length + ' employers with signals.');
+    btn.disabled = false;
+  }
+
+  function renderRadar(employers, pinnedCustom = []) {
+    const tbody = document.getElementById('radar-body');
+    tbody.innerHTML = '';
+    const pinnedFromUniverse = employers.filter(e => e.pinned);
+    const unpinned = employers.filter(e => !e.pinned);
+    const allRows = [...pinnedCustom, ...pinnedFromUniverse, ...unpinned];
+    if (!allRows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#94a3b8;">No signals found — try Refresh.</td></tr>';
+      return;
+    }
+    allRows.forEach((emp, idx) => {
+      const isPinned = emp.pinned || pinnedCustom.includes(emp);
+      const tr = document.createElement('tr');
+      const tdRank = document.createElement('td'); tdRank.className = 'radar-rank';
+      tdRank.textContent = isPinned ? '📌' : (idx - pinnedCustom.length - pinnedFromUniverse.length + 1);
+      tr.appendChild(tdRank);
+      const tdName = document.createElement('td'); tdName.style.setProperty('--brand', '#2563eb');
+      const nameEl = document.createElement('strong'); nameEl.textContent = emp.name;
+      const secEl  = document.createElement('div'); secEl.className = 'radar-sector'; secEl.textContent = emp.sector;
+      tdName.appendChild(nameEl); tdName.appendChild(secEl);
+      if (isPinned) { const badge = document.createElement('div'); badge.className = 'pinned-badge'; badge.textContent = 'PINNED'; tdName.appendChild(badge); }
+      tr.appendChild(tdName);
+      const scoreColor = emp.score >= 60 ? '#dc2626' : emp.score >= 30 ? '#d97706' : '#64748b';
+      const tdScore = document.createElement('td'); tdScore.className = 'radar-score-cell';
+      tdScore.innerHTML = '<div class="radar-score-num" style="color:' + scoreColor + '">' + emp.score + '</div><div class="radar-score-bar"><div class="radar-score-fill" style="width:' + emp.score + '%;background:' + scoreColor + '"></div></div>';
+      tr.appendChild(tdScore);
+      const tdTriggers = document.createElement('td');
+      if (!emp.triggers.length) { tdTriggers.innerHTML = '<span class="radar-no-trigger">General news only</span>'; }
+      else {
+        emp.triggers.forEach(({ type }) => {
+          const def = TRIGGER_DEFS[type]; if (!def) return;
+          const badge = document.createElement('span'); badge.className = 'radar-badge';
+          badge.textContent = def.label;
+          badge.style.cssText = 'background:' + def.color + '1a;color:' + def.color + ';border-color:' + def.color + '66';
+          tdTriggers.appendChild(badge);
+        });
+      }
+      tr.appendChild(tdTriggers);
+      const tdEvidence = document.createElement('td'); tdEvidence.className = 'radar-evidence';
+      const evidenceArticles = emp.triggers.slice(0,3).map(t => t.article);
+      if (!evidenceArticles.length) {
+        const s = document.createElement('span'); s.className = 'empty-cell';
+        s.textContent = emp.totalArticles + ' general article' + (emp.totalArticles!==1?'s':'');
+        tdEvidence.appendChild(s);
+      } else {
+        evidenceArticles.forEach(a => {
+          const link = document.createElement('a'); link.href = a.link; link.target = '_blank'; link.rel = 'noopener noreferrer';
+          link.textContent = truncate(a.title, 80);
+          const meta = document.createElement('div'); meta.className = 'radar-evidence-meta';
+          meta.textContent = truncate(a.source, 35) + ' · ' + fmtDate(a.pubDate);
+          tdEvidence.appendChild(link); tdEvidence.appendChild(meta);
+        });
+      }
+      tr.appendChild(tdEvidence);
+      tbody.appendChild(tr);
+    });
+  }
+
+  loadTabData('providers', false);
 </script>
 </body>
 </html>
