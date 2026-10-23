@@ -206,6 +206,68 @@
     .modal-watch { font-size: 0.85rem; color: #93c5fd; line-height: 1.65; font-style: italic; }
     .modal-cache-note { margin-top: 18px; font-size: 0.68rem; color: #475569; }
     .modal-refresh-link { color: #60a5fa; cursor: pointer; text-decoration: underline; }
+
+    /* ── DC Client Map ─────────────────────────────────────────────────────── */
+    .cm-banner {
+      margin: 16px 24px 0; padding: 10px 16px; border-radius: 6px;
+      font-size: 0.80rem; background: #78350f22; color: #fbbf24;
+      border: 1px solid #78350f88;
+    }
+    .cm-filter-bar {
+      padding: 14px 24px; display: flex; flex-wrap: wrap; gap: 10px;
+      align-items: center; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+    }
+    .cm-filter-bar select, .cm-filter-bar input[type="text"] {
+      background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;
+      padding: 6px 10px; font-size: 0.80rem; color: #374151; outline: none;
+    }
+    .cm-filter-bar select { cursor: pointer; }
+    .cm-filter-bar select:focus, .cm-filter-bar input[type="text"]:focus { border-color: #2563eb; }
+    .cm-clear-btn {
+      background: none; border: 1px solid #cbd5e1; border-radius: 6px;
+      padding: 6px 12px; font-size: 0.80rem; color: #374151; cursor: pointer; white-space: nowrap;
+    }
+    .cm-clear-btn:hover { border-color: #94a3b8; background: #f1f5f9; }
+    .cm-csv-btn {
+      background: #1d4ed8; border: 1px solid #1d4ed8; border-radius: 6px;
+      padding: 6px 12px; font-size: 0.80rem; color: #fff; cursor: pointer; white-space: nowrap;
+    }
+    .cm-csv-btn:hover { background: #1e40af; }
+    .cm-count { font-size: 0.75rem; color: #64748b; white-space: nowrap; }
+    .cm-badge {
+      display: inline-block; font-size: 0.67rem; font-weight: 600;
+      letter-spacing: 0.04em; padding: 2px 7px; border-radius: 10px;
+      border: 1px solid; white-space: nowrap;
+    }
+    .cm-badge-confirmed  { background: #dcfce7; color: #15803d; border-color: #86efac; }
+    .cm-badge-reported   { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+    .cm-badge-indicative { background: #fef9c3; color: #a16207; border-color: #fde047; }
+    .cm-badge-conflict   {
+      background: #fee2e2; color: #b91c1c; border-color: #fca5a5;
+      font-size: 0.60rem; padding: 1px 5px; margin-left: 4px;
+    }
+    .cm-event-tag {
+      display: inline-block; font-size: 0.67rem; padding: 2px 6px;
+      border-radius: 3px; background: #e2e8f0; color: #475569; white-space: nowrap;
+    }
+    .cm-sources a {
+      color: #1d4ed8; text-decoration: none; font-size: 0.72rem;
+      display: block; margin-bottom: 2px;
+    }
+    .cm-sources a:hover { text-decoration: underline; }
+    .cm-sources .cm-src-label {
+      color: #94a3b8; font-size: 0.72rem; font-style: italic;
+    }
+    .cm-methodology {
+      padding: 24px 24px 32px; font-size: 0.75rem; color: #64748b;
+      line-height: 1.75; border-top: 1px solid #e2e8f0; max-width: 860px;
+    }
+    .cm-methodology h3 {
+      font-size: 0.78rem; font-weight: 700; color: #374151; margin: 0 0 6px;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .cm-methodology ul { padding-left: 18px; margin: 0 0 14px; }
+    .cm-methodology li { margin-bottom: 3px; }
   </style>
 </head>
 <body>
@@ -215,13 +277,14 @@
     <h1>DC Pension Market Tracker</h1>
     <div class="meta" id="last-updated">Loading…</div>
   </div>
-  <button id="refresh-btn" onclick="activeTab==='radar' ? loadRadarData(true) : loadTabData(activeTab, true)">Refresh Now</button>
+  <button id="refresh-btn" onclick="activeTab==='radar' ? loadRadarData(true) : activeTab==='clientmap' ? void 0 : loadTabData(activeTab, true)">Refresh Now</button>
 </header>
 
 <nav class="tabs">
   <button class="tab-btn active"  id="tab-btn-providers" onclick="switchTab('providers')">DC Providers</button>
   <button class="tab-btn"         id="tab-btn-bill"      onclick="switchTab('bill')">Regulatory Change</button>
   <button class="tab-btn"         id="tab-btn-radar"     onclick="switchTab('radar')">UK Employers Tracker</button>
+  <button class="tab-btn"         id="tab-btn-clientmap" onclick="switchTab('clientmap')">DC Client Map</button>
 </nav>
 
 <div id="status-bar"><span class="spinner"></span><span id="status-text">Initialising…</span></div>
@@ -287,6 +350,79 @@
   </div>
 </div>
 
+<!-- DC Client Map tab -->
+<div id="panel-clientmap" style="display:none">
+  <div id="cm-stale-banner" class="cm-banner" style="display:none"></div>
+  <div class="cm-filter-bar">
+    <select id="cm-filter-provider" onchange="applyClientMapFilters()">
+      <option value="">All providers</option>
+    </select>
+    <select id="cm-filter-event" onchange="applyClientMapFilters()">
+      <option value="">All event types</option>
+      <option value="bulk transfer in">Bulk Transfer</option>
+      <option value="deferred sweep">Deferred Sweep</option>
+      <option value="contract-to-trust">Contract→Trust</option>
+      <option value="MT-to-MT consolidation">MT-to-MT</option>
+      <option value="new appointment">New Appointment</option>
+    </select>
+    <select id="cm-filter-confidence" onchange="applyClientMapFilters()">
+      <option value="">All confidence</option>
+      <option value="Confirmed">Confirmed</option>
+      <option value="Reported">Reported</option>
+      <option value="Indicative">Indicative</option>
+    </select>
+    <input type="text" id="cm-filter-text" placeholder="Filter by client, scheme or sector…"
+           oninput="applyClientMapFilters()" style="min-width:200px">
+    <button class="cm-clear-btn" onclick="clearClientMapFilters()">✕ Clear</button>
+    <span class="cm-count" id="cm-count"></span>
+    <button class="cm-csv-btn" onclick="exportClientMapCsv()">↓ Export CSV</button>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Client / Scheme</th>
+          <th>Sector</th>
+          <th>Event</th>
+          <th style="text-align:right">Members</th>
+          <th style="text-align:right">AUM</th>
+          <th>Announced</th>
+          <th>Completed</th>
+          <th>Confidence</th>
+          <th>Sources</th>
+        </tr>
+      </thead>
+      <tbody id="cm-body">
+        <tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="cm-methodology">
+    <h3>Confidence levels</h3>
+    <ul>
+      <li><strong>Confirmed</strong> — A primary document (chair's statement, member booklet, scheme annual report) was fetched and read. The transfer is stated explicitly in that document.</li>
+      <li><strong>Reported</strong> — Sourced from trade press only (Professional Pensions, Pensions Age, IPE, Corporate Adviser, etc.). Trade press alone cannot achieve Confirmed status.</li>
+      <li><strong>Indicative</strong> — Indirect evidence only: a credential page, anonymised reference, a booklet URL that returned an error, or a single indirect mention. Treat with caution.</li>
+    </ul>
+    <h3>Event types</h3>
+    <ul>
+      <li><strong>Bulk Transfer</strong> — all or most members and assets move from an existing arrangement to a master trust.</li>
+      <li><strong>Deferred Sweep</strong> — only deferred (non-contributing) members transferred; the active section may remain in the old arrangement.</li>
+      <li><strong>Contract→Trust</strong> — a stakeholder or GPP arrangement converted into a trust-based master trust.</li>
+      <li><strong>MT-to-MT</strong> — one master trust consolidates into another master trust.</li>
+    </ul>
+    <h3>Ground rules</h3>
+    <ul>
+      <li>Public sources only — no internal or non-public information.</li>
+      <li>AUM in £ millions at transfer date where known, otherwise at announcement date.</li>
+      <li>Blank fields mean the data was not found, not that it is zero.</li>
+      <li>CONFLICT flag means two or more credible sources give conflicting information — see row notes.</li>
+    </ul>
+    <p>Dataset last researched: <strong id="cm-generated-date"></strong>.</p>
+  </div>
+</div>
+
 <!-- AI Assessment modal -->
 <div class="modal-overlay" id="ai-modal" onclick="if(event.target===this) closeModal()">
   <div class="modal-box">
@@ -307,6 +443,7 @@
   Page must remain open to auto-refresh.
 </footer>
 
+<script src="client-map-data.js"></script>
 <script>
   const WORKER_URL = 'https://pension-tracker-worker.tom-trennery.workers.dev';
 
@@ -584,13 +721,15 @@
   function switchTab(tab) {
     if (tab === activeTab) return;
     activeTab = tab;
-    document.getElementById('panel-providers').style.display = tab === 'providers' ? '' : 'none';
-    document.getElementById('panel-bill').style.display      = tab === 'bill'      ? '' : 'none';
-    document.getElementById('panel-radar').style.display     = tab === 'radar'     ? '' : 'none';
-    ['providers','bill','radar'].forEach(t =>
+    document.getElementById('panel-providers').style.display  = tab === 'providers'  ? '' : 'none';
+    document.getElementById('panel-bill').style.display       = tab === 'bill'       ? '' : 'none';
+    document.getElementById('panel-radar').style.display      = tab === 'radar'      ? '' : 'none';
+    document.getElementById('panel-clientmap').style.display  = tab === 'clientmap'  ? '' : 'none';
+    ['providers','bill','radar','clientmap'].forEach(t =>
       document.getElementById('tab-btn-' + t).classList.toggle('active', t === tab)
     );
     if (tab === 'radar') { renderPinTags(); loadRadarData(false); }
+    else if (tab === 'clientmap') renderClientMap();
     else loadTabData(tab, false);
   }
 
@@ -1152,6 +1291,210 @@
       tr.appendChild(tdEvidence);
       tbody.appendChild(tr);
     });
+  }
+
+  // ── DC Client Map ─────────────────────────────────────────────────────────
+
+  let _cmFiltered = [];
+  let _cmProviderPopulated = false;
+
+  function renderClientMap() {
+    if (typeof CLIENT_MAP_GENERATED_AT !== 'undefined') {
+      const gen  = new Date(CLIENT_MAP_GENERATED_AT);
+      const days = Math.floor((Date.now() - gen.getTime()) / 86400000);
+      const banner = document.getElementById('cm-stale-banner');
+      if (days >= 30) {
+        banner.textContent = 'Client Map data is ' + days + ' days old — last updated ' +
+          gen.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        banner.style.display = '';
+      } else {
+        banner.style.display = 'none';
+      }
+      const dateEl = document.getElementById('cm-generated-date');
+      if (dateEl) dateEl.textContent =
+        gen.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    if (!_cmProviderPopulated && typeof CLIENT_MAP_DATA !== 'undefined') {
+      const sel = document.getElementById('cm-filter-provider');
+      const brands = [...new Set(CLIENT_MAP_DATA.map(r => r.provider_brand))].sort();
+      brands.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b; opt.textContent = b; sel.appendChild(opt);
+      });
+      _cmProviderPopulated = true;
+    }
+    applyClientMapFilters();
+  }
+
+  function applyClientMapFilters() {
+    if (typeof CLIENT_MAP_DATA === 'undefined') {
+      document.getElementById('cm-body').innerHTML =
+        '<tr><td colspan="10" style="text-align:center;padding:40px;color:#ef4444">client-map-data.js failed to load.</td></tr>';
+      return;
+    }
+    const provider   = document.getElementById('cm-filter-provider').value;
+    const eventType  = document.getElementById('cm-filter-event').value;
+    const confidence = document.getElementById('cm-filter-confidence').value;
+    const text       = document.getElementById('cm-filter-text').value.toLowerCase().trim();
+    _cmFiltered = CLIENT_MAP_DATA.filter(r => {
+      if (provider   && r.provider_brand !== provider)  return false;
+      if (eventType  && r.event_type     !== eventType) return false;
+      if (confidence && r.confidence     !== confidence) return false;
+      if (text) {
+        const hay = ((r.client_name || '') + ' ' + (r.ceding_scheme_name || '') + ' ' +
+                     (r.sector || '') + ' ' + (r.notes || '') + ' ' + (r.provider_brand || '')).toLowerCase();
+        if (!hay.includes(text)) return false;
+      }
+      return true;
+    });
+    document.getElementById('cm-count').textContent = _cmFiltered.length + ' of ' + CLIENT_MAP_DATA.length + ' rows';
+    renderClientMapRows(_cmFiltered);
+  }
+
+  function clearClientMapFilters() {
+    document.getElementById('cm-filter-provider').value = '';
+    document.getElementById('cm-filter-event').value    = '';
+    document.getElementById('cm-filter-confidence').value = '';
+    document.getElementById('cm-filter-text').value     = '';
+    applyClientMapFilters();
+  }
+
+  function cmEsc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmtCmDate(d) {
+    if (!d) return '—';
+    if (/^\d{4}$/.test(d)) return d;
+    if (/^\d{4}-\d{2}$/.test(d)) {
+      const [y, m] = d.split('-');
+      return new Date(+y, +m - 1, 1).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+    }
+    try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+    catch { return d; }
+  }
+
+  function fmtCmAum(gbp) {
+    if (gbp == null) return '—';
+    return gbp >= 1000 ? '£' + (gbp / 1000).toFixed(1) + 'bn' : '£' + gbp + 'm';
+  }
+
+  function fmtCmMembers(n) {
+    if (n == null) return '—';
+    if (n >= 1000) return (n / 1000 % 1 === 0 ? (n/1000) : (n/1000).toFixed(1)) + 'k';
+    return n.toLocaleString();
+  }
+
+  const CM_EVENT_LABELS = {
+    'bulk transfer in':       'Bulk Transfer',
+    'deferred sweep':         'Deferred Sweep',
+    'contract-to-trust':      'Contract→Trust',
+    'MT-to-MT consolidation': 'MT-to-MT',
+    'new appointment':        'New Appt.',
+    'drawdown appointment':   'Drawdown Appt.',
+  };
+
+  function renderClientMapRows(rows) {
+    const tbody = document.getElementById('cm-body');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8">No rows match the current filters.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+
+      const tdProv = document.createElement('td');
+      tdProv.style.setProperty('--brand', '#2563eb');
+      tdProv.innerHTML = '<strong>' + cmEsc(r.provider_brand) + '</strong>' +
+        '<div style="font-size:0.70rem;color:#64748b;margin-top:1px">' + cmEsc(r.provider_group) + '</div>';
+      tr.appendChild(tdProv);
+
+      const tdClient = document.createElement('td'); tdClient.style.minWidth = '160px';
+      let ch = '';
+      if (r.client_name) ch += '<strong>' + cmEsc(r.client_name) + '</strong>';
+      if (r.ceding_scheme_name) {
+        if (ch) ch += '<br>';
+        ch += '<span style="font-size:0.72rem;color:#64748b">' + cmEsc(r.ceding_scheme_name) + '</span>';
+      }
+      tdClient.innerHTML = ch || '—';
+      tr.appendChild(tdClient);
+
+      const tdSec = document.createElement('td');
+      tdSec.style.fontSize = '0.78rem'; tdSec.style.color = '#374151';
+      tdSec.textContent = r.sector || '—';
+      tr.appendChild(tdSec);
+
+      const tdEv = document.createElement('td');
+      tdEv.innerHTML = '<span class="cm-event-tag">' + cmEsc(CM_EVENT_LABELS[r.event_type] || r.event_type) + '</span>';
+      tr.appendChild(tdEv);
+
+      const tdMem = document.createElement('td');
+      tdMem.style.textAlign = 'right'; tdMem.style.fontVariantNumeric = 'tabular-nums';
+      tdMem.style.fontSize = '0.82rem'; tdMem.textContent = fmtCmMembers(r.members);
+      tr.appendChild(tdMem);
+
+      const tdAum = document.createElement('td');
+      tdAum.style.textAlign = 'right'; tdAum.style.fontVariantNumeric = 'tabular-nums';
+      tdAum.style.fontSize = '0.82rem'; tdAum.textContent = fmtCmAum(r.aum_gbp);
+      tr.appendChild(tdAum);
+
+      const tdAnn = document.createElement('td');
+      tdAnn.style.whiteSpace = 'nowrap'; tdAnn.style.fontSize = '0.78rem';
+      tdAnn.textContent = fmtCmDate(r.announced_date);
+      tr.appendChild(tdAnn);
+
+      const tdComp = document.createElement('td');
+      tdComp.style.whiteSpace = 'nowrap'; tdComp.style.fontSize = '0.78rem';
+      if (r.status === 'In Progress') {
+        tdComp.innerHTML = '<span style="color:#d97706;font-style:italic">In Progress</span>';
+      } else {
+        tdComp.textContent = fmtCmDate(r.completed_date);
+      }
+      tr.appendChild(tdComp);
+
+      const tdConf = document.createElement('td');
+      const confCls = { Confirmed: 'cm-badge-confirmed', Reported: 'cm-badge-reported', Indicative: 'cm-badge-indicative' }[r.confidence] || 'cm-badge-reported';
+      let confHtml = '<span class="cm-badge ' + confCls + '">' + cmEsc(r.confidence) + '</span>';
+      if (r.conflicting_sources) confHtml += '<span class="cm-badge cm-badge-conflict">CONFLICT</span>';
+      tdConf.innerHTML = confHtml;
+      tr.appendChild(tdConf);
+
+      const tdSrc = document.createElement('td'); tdSrc.className = 'cm-sources'; tdSrc.style.minWidth = '150px';
+      if (r.sources && r.sources.length) {
+        const linked = r.sources.filter(s => s.url).slice(0, 2);
+        const unlinked = r.sources.filter(s => !s.url).slice(0, 1);
+        linked.forEach(s => {
+          const a = document.createElement('a');
+          a.href = s.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          a.textContent = truncate(s.label, 35);
+          tdSrc.appendChild(a);
+        });
+        if (!linked.length && unlinked.length) {
+          const sp = document.createElement('span'); sp.className = 'cm-src-label';
+          sp.textContent = unlinked[0].label;
+          tdSrc.appendChild(sp);
+        }
+      }
+      tr.appendChild(tdSrc);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function exportClientMapCsv() {
+    const rows = _cmFiltered.length ? _cmFiltered : (typeof CLIENT_MAP_DATA !== 'undefined' ? CLIENT_MAP_DATA : []);
+    const headers = ['id','provider_brand','provider_group','client_name','ceding_scheme_name',
+                     'sector','event_type','members','aum_gbp','announced_date','completed_date',
+                     'status','confidence','conflicting_sources','notes'];
+    const lines = [headers.join(',')].concat(rows.map(r =>
+      headers.map(h => '"' + (r[h] == null ? '' : String(r[h])).replace(/"/g, '""') + '"').join(',')
+    ));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'dc-client-map-' + (typeof CLIENT_MAP_GENERATED_AT !== 'undefined' ? CLIENT_MAP_GENERATED_AT : 'export') + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }
 
   loadTabData('providers', false);
