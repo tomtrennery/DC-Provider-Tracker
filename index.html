@@ -268,6 +268,66 @@
     }
     .cm-methodology ul { padding-left: 18px; margin: 0 0 14px; }
     .cm-methodology li { margin-bottom: 3px; }
+
+    /* ── Ombudsman Decisions tab ─────────────────────────────────────────── */
+    .omb-bar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+      padding: 16px 24px 4px;
+    }
+    .omb-bar input[type="text"] {
+      padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+      font-size: 0.8rem; background: #fff; color: #0f172a;
+    }
+    .omb-bar input[type="text"]:focus { border-color: #2563eb; outline: none; }
+    .omb-check { font-size: 0.75rem; color: #475569; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+    .omb-updated { font-size: 0.72rem; color: #94a3b8; margin-left: auto; white-space: nowrap; }
+    .omb-note {
+      padding: 4px 24px 12px; font-size: 0.74rem; color: #64748b;
+      line-height: 1.6; max-width: 980px;
+    }
+    .omb-wrap {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+      padding: 8px 24px 32px; align-items: start;
+    }
+    @media (max-width: 900px) { .omb-wrap { grid-template-columns: 1fr; } }
+    .omb-head {
+      font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 0 0 10px;
+      padding-bottom: 6px; border-bottom: 2px solid #e2e8f0;
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .omb-src { font-size: 0.7rem; font-weight: 500; color: #1d4ed8; text-decoration: none; }
+    .omb-src:hover { text-decoration: underline; }
+    .omb-item {
+      border: 1px solid #e2e8f0; border-radius: 7px; padding: 10px 12px;
+      margin-bottom: 8px; background: #fff;
+    }
+    .omb-item.omb-dc { border-left: 3px solid #2563eb; }
+    .omb-item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+    .omb-date { font-size: 0.7rem; color: #64748b; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .omb-title { font-size: 0.82rem; font-weight: 600; color: #0f172a; margin: 2px 0; }
+    .omb-title a { color: inherit; text-decoration: none; }
+    .omb-title a:hover { text-decoration: underline; }
+    .omb-meta { font-size: 0.72rem; color: #64748b; line-height: 1.5; }
+    .omb-meta .omb-ref { font-variant-numeric: tabular-nums; color: #94a3b8; }
+    .omb-desc { font-size: 0.72rem; color: #475569; margin-top: 4px; line-height: 1.5; }
+    .omb-outcome {
+      display: inline-block; font-size: 0.65rem; font-weight: 600; padding: 1px 6px;
+      border-radius: 10px; border: 1px solid; white-space: nowrap;
+    }
+    .omb-outcome.up   { background: #dcfce7; color: #15803d; border-color: #86efac; }
+    .omb-outcome.part { background: #fef9c3; color: #a16207; border-color: #fde047; }
+    .omb-outcome.not  { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+    .dc-badge {
+      display: inline-block; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em;
+      padding: 1px 6px; border-radius: 10px; background: #dbeafe; color: #1d4ed8;
+      border: 1px solid #93c5fd; white-space: nowrap;
+    }
+    .omb-cat-tag {
+      display: inline-block; font-size: 0.65rem; padding: 1px 6px; border-radius: 3px;
+      background: #e2e8f0; color: #475569; white-space: nowrap;
+    }
+    .omb-empty { color: #94a3b8; font-size: 0.8rem; padding: 24px 4px; text-align: center; }
+    .omb-empty.err { color: #ef4444; }
   </style>
 </head>
 <body>
@@ -277,7 +337,7 @@
     <h1>DC Pension Market Tracker</h1>
     <div class="meta" id="last-updated">Loading…</div>
   </div>
-  <button id="refresh-btn" onclick="activeTab==='radar' ? loadRadarData(true) : activeTab==='clientmap' ? void 0 : loadTabData(activeTab, true)">Refresh Now</button>
+  <button id="refresh-btn" onclick="activeTab==='radar' ? loadRadarData(true) : activeTab==='clientmap' ? void 0 : activeTab==='ombudsman' ? loadOmbudsman(true) : loadTabData(activeTab, true)">Refresh Now</button>
 </header>
 
 <nav class="tabs">
@@ -285,6 +345,7 @@
   <button class="tab-btn"         id="tab-btn-bill"      onclick="switchTab('bill')">Regulatory Change</button>
   <button class="tab-btn"         id="tab-btn-radar"     onclick="switchTab('radar')">UK Employers Tracker</button>
   <button class="tab-btn"         id="tab-btn-clientmap" onclick="switchTab('clientmap')">DC Client Map</button>
+  <button class="tab-btn"         id="tab-btn-ombudsman" onclick="switchTab('ombudsman')">Ombudsman Decisions</button>
 </nav>
 
 <div id="status-bar"><span class="spinner"></span><span id="status-text">Initialising…</span></div>
@@ -420,6 +481,38 @@
       <li>CONFLICT flag means two or more credible sources give conflicting information — see row notes.</li>
     </ul>
     <p>Dataset last researched: <strong id="cm-generated-date"></strong>.</p>
+  </div>
+</div>
+
+<!-- Ombudsman Decisions tab -->
+<div id="panel-ombudsman" style="display:none">
+  <div class="omb-bar">
+    <input type="text" id="omb-filter-text" placeholder="Filter by scheme, business, topic or reference…"
+           oninput="renderOmbudsman()" style="min-width:240px">
+    <label class="omb-check"><input type="checkbox" id="omb-dc-only" onchange="renderOmbudsman()"> DC-flagged only</label>
+    <span class="cm-count" id="omb-count"></span>
+    <span class="omb-updated" id="omb-updated"></span>
+  </div>
+  <p class="omb-note">
+    Latest decisions relating to defined-contribution pensions. The
+    <span class="dc-badge">DC</span> tag marks decisions our heuristic reads as defined-contribution
+    (master trust, personal/stakeholder pension, SIPP, AVC, drawdown, provider-run scheme). Financial
+    Ombudsman cases are filtered to the “Investment and&nbsp;pensions” sector; Pensions Ombudsman cases
+    show all pension decisions, DC ones flagged. Nothing is hidden unless you tick “DC-flagged&nbsp;only”.
+  </p>
+  <div class="omb-wrap">
+    <div class="omb-col">
+      <h3 class="omb-head">Pensions Ombudsman (TPO)
+        <a class="omb-src" href="https://www.pensions-ombudsman.org.uk/decisions" target="_blank" rel="noopener">source ↗</a>
+      </h3>
+      <div id="omb-tpo"><p class="omb-empty">Select this tab to load.</p></div>
+    </div>
+    <div class="omb-col">
+      <h3 class="omb-head">Financial Ombudsman (FOS)
+        <a class="omb-src" href="https://www.financial-ombudsman.org.uk/decisions-case-studies/ombudsman-decisions" target="_blank" rel="noopener">source ↗</a>
+      </h3>
+      <div id="omb-fos"><p class="omb-empty">Select this tab to load.</p></div>
+    </div>
   </div>
 </div>
 
@@ -2991,6 +3084,8 @@ const CLIENT_MAP_DATA = [
   const CACHE_TTL        = 24 * 60 * 60 * 1000;
   const RADAR_CACHE_TTL  =  6 * 60 * 60 * 1000;
   const ASSESS_CACHE_TTL = 24 * 60 * 60 * 1000;
+  const OMB_CACHE_TTL    =  6 * 60 * 60 * 1000;
+  const OMB_CACHE_KEY    = 'pension_ombudsman_v1';
   const MAX_ITEMS = 5;
 
   const TRADE_FEEDS = [
@@ -3259,6 +3354,197 @@ const CLIENT_MAP_DATA = [
     }
   }
 
+  // ── Ombudsman Decisions ─────────────────────────────────────────────────
+  let _ombData = null;
+
+  const OMB_DC_TERMS = [
+    'master trust','retirement savings','group personal pension',' gpp ','stakeholder','sipp',
+    'self-invested','self invested','money purchase','defined contribution',' dc ','personal pension',
+    'drawdown','annuity','avc','additional voluntary','lifestyle','default fund','contract-based',
+    'auto-enrol','auto enrol','flexi-access','ufpls','uncrystallised','workplace pension',
+    'nest','now:pensions',"people's pension",'smart pension','aegon','standard life','scottish widows',
+    'aviva','legal & general',' l&g ','royal london','fidelity','prudential','scottish equitable',
+    'true potential','hargreaves lansdown','cushon','lifesight','mercer','willis towers watson',
+  ];
+  const OMB_DB_TERMS = [
+    'defined benefit','final salary','career average','care scheme','local government pension','lgps',
+    'nhs pension',' nhs ','teachers','civil service','police pension','firefighters','armed forces',
+    ' uss ','universities superannuation',
+  ];
+  function isDcDecision(item) {
+    const hay = ' ' + [item.title, item.topic, item.business, item.desc, item.category, item.respondent, item.ref]
+      .filter(Boolean).join(' ').toLowerCase() + ' ';
+    const dcHit = OMB_DC_TERMS.some(t => hay.includes(t));
+    const dbHit = OMB_DB_TERMS.some(t => hay.includes(t));
+    return dcHit || (item.source === 'FOS' && !dbHit);
+  }
+
+  function ombOutcomeClass(o) {
+    const l = (o || '').toLowerCase();
+    if (l.includes('not upheld')) return 'not';
+    if (l.includes('partly')) return 'part';
+    if (l.includes('upheld')) return 'up';
+    return 'not';
+  }
+
+  function ombBuildItem(item) {
+    const dc = isDcDecision(item);
+    const wrap = document.createElement('div');
+    wrap.className = 'omb-item' + (dc ? ' omb-dc' : '');
+
+    const top = document.createElement('div');
+    top.className = 'omb-item-top';
+    if (item.dateLabel || item.date) {
+      const d = document.createElement('span');
+      d.className = 'omb-date';
+      d.textContent = item.dateLabel || item.date;
+      top.appendChild(d);
+    }
+    if (item.outcome) {
+      const o = document.createElement('span');
+      o.className = 'omb-outcome ' + ombOutcomeClass(item.outcome);
+      o.textContent = item.outcome;
+      top.appendChild(o);
+    }
+    if (item.category) {
+      const c = document.createElement('span');
+      c.className = 'omb-cat-tag';
+      c.textContent = item.category;
+      top.appendChild(c);
+    }
+    if (dc) {
+      const b = document.createElement('span');
+      b.className = 'dc-badge';
+      b.textContent = 'DC';
+      top.appendChild(b);
+    }
+    wrap.appendChild(top);
+
+    const title = document.createElement('div');
+    title.className = 'omb-title';
+    const a = document.createElement('a');
+    a.href = item.url; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = item.title || item.ref || '(untitled)';
+    title.appendChild(a);
+    wrap.appendChild(title);
+
+    const meta = document.createElement('div');
+    meta.className = 'omb-meta';
+    const bits = [];
+    if (item.topic) bits.push(item.topic);
+    if (item.respondent) bits.push('Respondent: ' + item.respondent);
+    meta.textContent = bits.join(' · ');
+    if (item.ref) {
+      if (bits.length) meta.appendChild(document.createTextNode(' · '));
+      const r = document.createElement('span');
+      r.className = 'omb-ref'; r.textContent = item.ref;
+      meta.appendChild(r);
+    }
+    if (meta.textContent) wrap.appendChild(meta);
+
+    if (item.desc) {
+      const d = document.createElement('div');
+      d.className = 'omb-desc';
+      d.textContent = item.desc;
+      wrap.appendChild(d);
+    }
+    return wrap;
+  }
+
+  function ombRenderColumn(elId, items, errMsg) {
+    const el = document.getElementById(elId);
+    el.innerHTML = '';
+    if (errMsg) {
+      const p = document.createElement('p');
+      p.className = 'omb-empty err';
+      p.textContent = 'Could not load: ' + errMsg;
+      el.appendChild(p);
+      return 0;
+    }
+    if (!items.length) {
+      const p = document.createElement('p');
+      p.className = 'omb-empty';
+      p.textContent = 'No matching decisions.';
+      el.appendChild(p);
+      return 0;
+    }
+    items.forEach(it => el.appendChild(ombBuildItem(it)));
+    return items.length;
+  }
+
+  function renderOmbudsman() {
+    if (!_ombData) return;
+    const text = (document.getElementById('omb-filter-text').value || '').toLowerCase().trim();
+    const dcOnly = document.getElementById('omb-dc-only').checked;
+    const match = it => {
+      if (dcOnly && !isDcDecision(it)) return false;
+      if (!text) return true;
+      const hay = [it.title, it.topic, it.business, it.desc, it.category, it.respondent, it.ref]
+        .filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(text);
+    };
+    const errs = _ombData.errors || {};
+    const tpo = (_ombData.tpo || []).filter(match);
+    const fos = (_ombData.fos || []).filter(match);
+    const nT = ombRenderColumn('omb-tpo', tpo, errs.tpo);
+    const nF = ombRenderColumn('omb-fos', fos, errs.fos);
+    document.getElementById('omb-count').textContent = nT + ' TPO · ' + nF + ' FOS decisions';
+  }
+
+  async function loadOmbudsman(forceRefresh = false) {
+    const updatedEl = document.getElementById('omb-updated');
+    if (!forceRefresh) {
+      try {
+        const raw = localStorage.getItem(OMB_CACHE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          if (Date.now() - cached.timestamp < OMB_CACHE_TTL) {
+            _ombData = cached.data;
+            renderOmbudsman();
+            updatedEl.textContent = 'Cached ' + new Date(cached.timestamp).toLocaleString('en-GB');
+            return;
+          }
+        }
+      } catch {}
+    }
+
+    if (!WORKER_URL) {
+      ombRenderColumn('omb-tpo', [], 'Worker URL not configured');
+      ombRenderColumn('omb-fos', [], 'Worker URL not configured');
+      return;
+    }
+
+    document.getElementById('omb-tpo').innerHTML = '<p class="omb-empty">Loading…</p>';
+    document.getElementById('omb-fos').innerHTML = '<p class="omb-empty">Loading…</p>';
+    updatedEl.textContent = 'Updating…';
+
+    try {
+      const resp = await fetch(WORKER_URL + '/ombudsman');
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      _ombData = data;
+      const timestamp = Date.now();
+      try { localStorage.setItem(OMB_CACHE_KEY, JSON.stringify({ timestamp, data })); } catch {}
+      renderOmbudsman();
+      updatedEl.textContent = 'Updated ' + new Date(timestamp).toLocaleString('en-GB');
+    } catch (err) {
+      // Fall back to stale cache if present
+      try {
+        const raw = localStorage.getItem(OMB_CACHE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          _ombData = cached.data;
+          renderOmbudsman();
+          updatedEl.textContent = 'Stale cache (refresh failed: ' + err.message + ')';
+          return;
+        }
+      } catch {}
+      ombRenderColumn('omb-tpo', [], err.message);
+      ombRenderColumn('omb-fos', [], err.message);
+      updatedEl.textContent = '';
+    }
+  }
+
   function switchTab(tab) {
     if (tab === activeTab) return;
     activeTab = tab;
@@ -3266,11 +3552,13 @@ const CLIENT_MAP_DATA = [
     document.getElementById('panel-bill').style.display       = tab === 'bill'       ? '' : 'none';
     document.getElementById('panel-radar').style.display      = tab === 'radar'      ? '' : 'none';
     document.getElementById('panel-clientmap').style.display  = tab === 'clientmap'  ? '' : 'none';
-    ['providers','bill','radar','clientmap'].forEach(t =>
+    document.getElementById('panel-ombudsman').style.display  = tab === 'ombudsman'  ? '' : 'none';
+    ['providers','bill','radar','clientmap','ombudsman'].forEach(t =>
       document.getElementById('tab-btn-' + t).classList.toggle('active', t === tab)
     );
     if (tab === 'radar') { renderPinTags(); loadRadarData(false); }
     else if (tab === 'clientmap') renderClientMap();
+    else if (tab === 'ombudsman') loadOmbudsman(false);
     else loadTabData(tab, false);
   }
 
